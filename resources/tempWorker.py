@@ -135,13 +135,13 @@ def get_backend(USE_FAKE_TEMPS):
         # Try Windows first
         import mcculw
         return MCCBackend()
-    except ImportError:
+    except NameError:
         pass
 
     try:
         import uldaq
         return LinuxULDAQBackend()
-    except ImportError:
+    except NameError:
         raise RuntimeError(
             "No DAQ backend available (mcculw or uldaq missing)"
         )

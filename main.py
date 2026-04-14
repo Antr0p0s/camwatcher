@@ -16,8 +16,8 @@ import os
  
 load_dotenv()
 
-DEV_MODE = os.getenv("ENVIRONMENT") == 'dev'
-print(f'Running in {DEV_MODE}')
+DEV_MODE = os.getenv("ENVIRONMENT") = 'dev'
+print(f'Running in {"DEV" if DEV_MODE else 'PROD'}')
 # ---------------------------
 # Configuration
 # ---------------------------

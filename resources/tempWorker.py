@@ -133,13 +133,12 @@ def get_backend(USE_FAKE_TEMPS):
         return FakeBackend()
     try:
         # Try Windows first
-        import mcculw
         return MCCBackend()
     except NameError:
         pass
 
     try:
-        import uldaq
+        print('running linux DAQ')
         return LinuxULDAQBackend()
     except NameError:
         raise RuntimeError(

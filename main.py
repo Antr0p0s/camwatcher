@@ -17,6 +17,7 @@ import os
 load_dotenv()
 
 DEV_MODE = os.getenv("ENVIRONMENT") == 'dev'
+print(f'Running in {DEV_MODE}')
 # ---------------------------
 # Configuration
 # ---------------------------
@@ -38,7 +39,6 @@ AUTO_ENABLE_RECORDING = False #not DEV_MODE
 recording = False
 FRAME_TIME = 1.0 / FPS_WINDOW
 API_URL = 'http://127.0.0.1:8000/' if DEV_MODE else "https://stage.randomwebserver.eu"
-API_URL = "https://stage.randomwebserver.eu"
 
 if not ping_api(API_URL):
     raise LookupError('Server not online')

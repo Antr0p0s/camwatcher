@@ -142,8 +142,9 @@ def get_backend(USE_FAKE_TEMPS):
         import uldaq
         return LinuxULDAQBackend()
     except ImportError:
-        print('running fake backend, nothing else available')
-        return FakeBackend()
+        raise RuntimeError(
+            "No DAQ backend available (mcculw or uldaq missing)"
+        )
 
 
 # =========================================================

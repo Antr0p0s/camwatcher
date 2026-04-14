@@ -4,7 +4,7 @@ import os
 from dotenv import load_dotenv
 import subprocess
 import sys
-
+ 
 load_dotenv()
 
 AUTH_KEY = os.getenv("API_AUTH_KEY")

@@ -9,6 +9,7 @@ load_dotenv()
 
 AUTH_KEY = os.getenv("API_AUTH_KEY")
 headers = {"Authorization": f"Bearer {AUTH_KEY}"}
+print(headers)
 
 def cleanup_server(api_url):
     # The endpoint remains the same, but the response message is updated for clarity

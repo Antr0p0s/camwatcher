@@ -16,10 +16,10 @@ import os
  
 load_dotenv()
 
-DEV_MODE = os.getenv("ENVIRONMENT") = 'dev'
+DEV_MODE = os.getenv("ENVIRONMENT") == 'dev'
 print(f'Running in {"DEV" if DEV_MODE else 'PROD'}')
 # ---------------------------
-# Configuration
+# ConfigurationS
 # ---------------------------
 VIDEO_FPS = 15 # FPS used in the final video
 MAX_BUFFER = 5 # memory - then it gets uploaded to the server mostly to keep under the cloudflare 50MB limit

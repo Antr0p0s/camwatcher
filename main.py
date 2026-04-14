@@ -11,8 +11,12 @@ from resources.tempWorker import temperature_acquisition_thread
 from resources.pressureWorker import pressure_acquisition_thread
 from resources.apiHandling import trigger_server_compilation, cleanup_server, ping_api
 from resources.setBounds import get_manual_bubble_mask
+from dotenv import load_dotenv
+import os
+ 
+load_dotenv()
 
-DEV_MODE = True
+DEV_MODE = os.getenv("ENVIRONMENT") == 'dev'
 # ---------------------------
 # Configuration
 # ---------------------------

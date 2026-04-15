@@ -26,8 +26,10 @@ class MCCBackend:
         self.TempScale = TempScale
         self.ULError = ULError
 
+        self.device = None
+
     def connect(self, board_num):
-        devices = mccDiscover()
+        devices = self.ul.get_daq_device_inventory(self.InterfaceType.ETHERNET)
         if not devices:
             raise RuntimeError("No MCC Ethernet devices found")
 
@@ -53,10 +55,10 @@ class MCCBackend:
 class LinuxULDAQBackend:
     def __init__(self):
         from resources.MCCDAQ.E_TC import E_TC
-        from resources.MCCDAQ.E_TC import discover
+        from resources.MCCDAQ.mccEthernet import mccDiscover
 
         self.E_TC = E_TC
-        self.discover = discover
+        self.discover = mccDiscover
         self.dev = None
 
     def connect(self, board_num):

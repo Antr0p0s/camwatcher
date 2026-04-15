@@ -113,9 +113,7 @@ class LiveUI:
         self.fig.canvas.draw_idle()
 
     def _update_filename(self, text):
-        text = text.strip()
-        if text != "":
-            self.filename = text
+        self.filename = text.strip()
 
     def get_filename(self):
         return self.filename

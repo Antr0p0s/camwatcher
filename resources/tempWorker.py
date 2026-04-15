@@ -1,6 +1,7 @@
 import math
 import time
 from collections import deque
+from resources.MCCDAQ.mccEthernet import mccDiscover
 
 BOARD_NUM = 0
 OFFSETS = [0.598540, 0.261689, 0.0, 0.101573, 0.0]
@@ -25,10 +26,8 @@ class MCCBackend:
         self.TempScale = TempScale
         self.ULError = ULError
 
-        self.device = None
-
     def connect(self, board_num):
-        devices = self.ul.get_daq_device_inventory(self.InterfaceType.ETHERNET)
+        devices = mccDiscover()
         if not devices:
             raise RuntimeError("No MCC Ethernet devices found")
 

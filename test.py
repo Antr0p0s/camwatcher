@@ -15,6 +15,13 @@ except ImportError:
     ETC_PID = 0x0138
     from resources.MCCDAQ.mccEthernet import mccEthernetDevice
 
+from resources.MCCDAQ.mccEthernet import mccDiscover
+devices = mccDiscover()
+if not devices:
+    print("No devices found on network")
+for d in devices:
+    d.printDeviceInfo()
+    
 try:
     device = mccEthernetDevice(ETC_PID, DAQ_IP)
     device.mccOpenDevice(CONNECT_CODE)

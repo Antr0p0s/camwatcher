@@ -18,6 +18,7 @@ except ImportError:
 try:
     device = mccEthernetDevice(ETC_PID, DAQ_IP)
     device.mccOpenDevice(CONNECT_CODE)
+    device.printDeviceInfo()
     print(f"    OK - TCP socket open: {device.sock.getpeername()}")
 except Exception as e:
     print(f"    FAIL: {e}")

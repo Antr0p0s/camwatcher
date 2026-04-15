@@ -144,6 +144,8 @@ def trigger_server_compilation(api_url, FORCE_BACKUP, DEV_MODE, filename="output
         if not final_data:
             print("[COMPILER] No final data received.")
             return False
+        
+        return print("[COMPILER] Download URLS received, aborting mission")
 
         os.makedirs("data", exist_ok=True)
 

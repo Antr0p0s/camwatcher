@@ -67,7 +67,7 @@ class LiveUI:
             "Filename:",
             initial=self.filename
         )
-        self.text_box.on_submit(self._update_filename)
+        self.text_box.on_text_change(self._update_filename)
 
         # ---- Vertical Contrast Sliders (Right Side) ----
         # Coordinates: [left, bottom, width, height]

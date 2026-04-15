@@ -4,7 +4,7 @@ E-TC connection test — works through each stage so you can see exactly where i
 """
 import sys
 
-DAQ_IP      = "192.168.0.100"  # factory default; try .100 if this fails
+DAQ_IP      = "192.168.0.101"  # factory default; try .100 if this fails
 CONNECT_CODE = 0               # default, change if you set one on the device
 
 # ── STEP 1: construct device object and open socket ───────────────────────────

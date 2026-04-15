@@ -63,7 +63,7 @@ class LinuxULDAQBackend:
         from resources.MCCDAQ.E_TC import E_TC, mccEthernetDevice
 
         device = mccEthernetDevice()
-        device.address = "192.168.0.101"   # static IP
+        device.address = "192.168.0.100"   # static IP
 
         self.dev = E_TC(device)
         self.dev.open()

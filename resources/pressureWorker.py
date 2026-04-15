@@ -81,6 +81,7 @@ def pressure_acquisition_thread(USE_FAKE_PRESSURE, pressure, stop_event):
 
         except serial.SerialException as e:
             print(f"[PRESSURE] Could not open serial port: {e}")
+            return pressure_acquisition_thread(True, pressure, stop_event)
         except KeyboardInterrupt:
             print("\n[PRESSURE] Monitoring stopped by user.")
         finally:

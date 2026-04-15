@@ -15,9 +15,6 @@ DAQ_IP   = "192.168.0.100"  # <-- change to your device IP
 CHANNELS = 4                 # channels 0-3
 INTERVAL = 0.5               # seconds between reads
 
-# Thermocouple type: J=1, K=2, T=3, E=4, R=5, S=6, B=7, N=8
-TC_TYPE  = E_TC.TC_TYPE_K
-
 def main():
     print(f"[INIT] Connecting to E-TC at {DAQ_IP} ...")
 
@@ -29,14 +26,6 @@ def main():
 
     print("[OK] Device object created.\n")
 
-    # Configure each channel: set thermocouple type
-    # Channel config is written as a list of types, one per channel (8 total)
-    tc_types = [TC_TYPE] * 8
-    try:
-        dev.TCConfigW(tc_types)
-        print("[OK] Thermocouple type configured.")
-    except Exception as e:
-        print("[WARN] Could not write TC config:", e)
 
     print("Reading temperatures (Ctrl+C to stop)...\n")
 

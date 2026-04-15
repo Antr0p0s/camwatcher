@@ -139,7 +139,8 @@ def get_backend(USE_FAKE_TEMPS):
 
     try:
         return LinuxULDAQBackend()
-    except Exception:
+    except Exception as e:
+        print(e)
         print("No DAQ backend available (mcculw or uldaq missing)")
         return FakeBackend()
 

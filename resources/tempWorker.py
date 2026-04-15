@@ -54,42 +54,17 @@ class MCCBackend:
 # =========================================================
 class LinuxULDAQBackend:
     def __init__(self):
-        from uldaq import (
-            get_daq_device_inventory,
-            DaqDevice,
-            InterfaceType,
-            TInFlag
-        )
-
-        self.get_daq_device_inventory = get_daq_device_inventory
-        self.DaqDevice = DaqDevice
-        self.InterfaceType = InterfaceType
-        self.TInFlag = TInFlag
-
-        self.daq_device = None
-        self.t_in_device = None
+        from resources.MCCDAQ.E_TC import E_TC
+        self.dev = E_TC()
 
     def connect(self, board_num):
-        devices = self.get_daq_device_inventory(self.InterfaceType.USB)
-        if not devices:
-            raise RuntimeError("No ULDAQ devices found")
-
-        self.daq_device = self.DaqDevice(devices[0])
-        self.daq_device.connect()
-
-        self.t_in_device = self.daq_device.get_t_in_device()
-
-        print("[TEMP] Linux ULDAQ connected")
+        self.dev.open()  # or connect()
 
     def read_temp(self, board_num, channel):
-        # ULDAQ reads temperature directly per channel
-        return self.t_in_device.t_in(channel, self.TInFlag.DEFAULT)
+        return self.dev.t_in(channel)
 
     def close(self, board_num):
-        if self.daq_device:
-            self.daq_device.disconnect()
-            self.daq_device.release()
-            
+        self.dev.close()
             
 import math
 import time

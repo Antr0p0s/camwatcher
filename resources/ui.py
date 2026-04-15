@@ -21,6 +21,8 @@ class LiveUI:
 
         # 3. Layout: Leave space at bottom for buttons and right for sliders
         plt.subplots_adjust(bottom=0.25, right=0.85)
+        
+        plt.show(block=False)
 
         self.vmin = img_lims[0]
         self.vmax = img_lims[1]
@@ -41,6 +43,9 @@ class LiveUI:
 
         self.filename = "auto_upload_test"
         self._build_ui()
+        
+        self.fig.canvas.draw()
+        self.fig.canvas.flush_events()
 
     def _build_ui(self):
         # ---- Start/Stop Button ----

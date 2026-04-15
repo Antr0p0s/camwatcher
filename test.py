@@ -4,7 +4,7 @@ from resources.MCCDAQ.E_TC import E_TC, mccEthernetDevice, ETC_PID
 # =========================
 # CONFIG
 # =========================
-DAQ_IP = "192.168.0.101"   # <-- CHANGE THIS
+DAQ_IP = "192.168.0.100"   # <-- CHANGE THIS
 CHANNELS = 4
 
 def main():

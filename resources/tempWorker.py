@@ -61,13 +61,16 @@ class LinuxULDAQBackend:
 
     def connect(self, board_num):
         from resources.MCCDAQ.mccEthernet import mccDiscover
+        from resources.MCCDAQ.E_TC import E_TC
         devices = mccDiscover()
 
         if not devices:
             raise RuntimeError("No E-TC devices found")
 
         # IMPORTANT: pass device into constructor
-        self.dev = self.E_TC(devices[0])
+        device = {}
+        device["address"] = "192.168.0.100"
+        self.dev = E_TC(device)
 
         self.dev.open()
 

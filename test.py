@@ -1,59 +1,33 @@
+from resources.MCCDAQ.E_TC import E_TC, mccDiscover
 import time
-from resources.MCCDAQ.E_TC import E_TC, mccEthernetDevice
-
-
-# =========================
-# CONFIG
-# =========================
-DAQ_IP = "192.168.0.101"   # <-- CHANGE THIS
-CHANNELS = 4
-BOARD_NUM = 0
-
-
-def convert_temperature(raw):
-    # keep simple for debugging (no calibration yet)
-    return raw
-
 
 def main():
-    print("[INIT] Connecting to E-TC device...")
+    print("[INIT] Discovering device...")
 
-    # Build device manually (NO discovery)
-    device = mccEthernetDevice()
-    device.address = DAQ_IP
+    devices = mccDiscover()
 
-    try:
-        dev = E_TC(device)
-        dev.open()
-    except Exception as e:
-        print("[ERROR] Could not connect to device:", e)
+    if not devices:
+        print("[ERROR] No devices found")
         return
 
-    print("[OK] Connected. Reading temperatures...\n")
+    device = devices[0]
+
+    print("[OK] Found device:", device.address)
+
+    tc = E_TC(device)
+    tc.open()
 
     try:
         while True:
-            temps = []
-
-            for ch in range(CHANNELS):
-                try:
-                    raw = dev.t_in(ch)
-                    temps.append(convert_temperature(raw))
-                except Exception as e:
-                    temps.append(float("nan"))
-                    print(f"[WARN] Channel {ch} read failed:", e)
-
-            print("Temps:", " | ".join(f"{t:6.2f}" for t in temps))
+            temps = [tc.t_in(i) for i in range(4)]
+            print("Temps:", temps)
             time.sleep(0.5)
 
     except KeyboardInterrupt:
-        print("\n[EXIT] Stopping...")
+        pass
 
     finally:
-        try:
-            dev.close()
-        except:
-            pass
+        tc.close()
 
 
 if __name__ == "__main__":

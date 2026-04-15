@@ -60,7 +60,7 @@ class TempMonitorApp:
         # BACKEND (REPLACES ALL MCCULW LOGIC)
         # =====================================================
         self.backend = get_backend(USE_FAKE_TEMPS)
-        self.backend.connect(BOARD_NUM)
+        self.backend.connect()
 
         # =====================================================
         # UI

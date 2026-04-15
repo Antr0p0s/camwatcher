@@ -59,29 +59,23 @@ class LinuxULDAQBackend:
         self.E_TC = E_TC
         self.dev = None
 
-    def connect(self, board_num):
-        from resources.MCCDAQ.mccEthernet import mccDiscover
-        from resources.MCCDAQ.E_TC import E_TC
-        # devices = mccDiscover()
+    def connect(self):
+        from resources.MCCDAQ.E_TC import E_TC, mccEthernetDevice
 
-        # if not devices:
-        #     raise RuntimeError("No E-TC devices found")
+        device = mccEthernetDevice()
+        device.address = "192.168.0.101"   # static IP
 
-        # # IMPORTANT: pass device into constructor
-        device = {}
-        device["address"] = "192.168.0.100"
         self.dev = E_TC(device)
-
         self.dev.open()
 
-        print("[TEMP] E-TC connected")
+        print("[TEMP] Connected directly to DAQ")
 
-    def read_temp(self, board_num, channel):
-        return self.dev.t_in(channel)
+        def read_temp(self, board_num, channel):
+            return self.dev.t_in(channel)
 
-    def close(self, board_num):
-        if self.dev:
-            self.dev.close()
+        def close(self, board_num):
+            if self.dev:
+                self.dev.close()
             
 import math
 import time

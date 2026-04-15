@@ -51,20 +51,34 @@ class MCCBackend:
 
 # =========================================================
 # LINUX BACKEND (uldaq)
-# =========================================================
 class LinuxULDAQBackend:
     def __init__(self):
         from resources.MCCDAQ.E_TC import E_TC
-        self.dev = E_TC()
+        from resources.MCCDAQ.E_TC import discover
+
+        self.E_TC = E_TC
+        self.discover = discover
+        self.dev = None
 
     def connect(self, board_num):
-        self.dev.open()  # or connect()
+        devices = self.discover()
+
+        if not devices:
+            raise RuntimeError("No E-TC devices found")
+
+        # IMPORTANT: pass device into constructor
+        self.dev = self.E_TC(devices[0])
+
+        self.dev.open()
+
+        print("[TEMP] E-TC connected")
 
     def read_temp(self, board_num, channel):
         return self.dev.t_in(channel)
 
     def close(self, board_num):
-        self.dev.close()
+        if self.dev:
+            self.dev.close()
             
 import math
 import time

@@ -55,14 +55,13 @@ class MCCBackend:
 class LinuxULDAQBackend:
     def __init__(self):
         from resources.MCCDAQ.E_TC import E_TC
-        from resources.MCCDAQ.mccEthernet import mccDiscover
 
         self.E_TC = E_TC
-        self.discover = mccDiscover
         self.dev = None
 
     def connect(self, board_num):
-        devices = self.discover()
+        from resources.MCCDAQ.mccEthernet import mccDiscover
+        devices = mccDiscover()
 
         if not devices:
             raise RuntimeError("No E-TC devices found")

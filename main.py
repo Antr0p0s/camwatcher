@@ -16,7 +16,7 @@ import os
 
 load_dotenv()
 
-DEV_MODE = True #os.getenv("ENVIRONMENT") == 'dev'
+DEV_MODE = os.getenv("ENVIRONMENT") == 'dev'
 print(f'Running in {"DEV" if DEV_MODE else 'PROD'}')
 # ---------------------------
 # ConfigurationS
@@ -102,7 +102,7 @@ pressure_thread = threading.Thread(
     daemon=True
 )
 
-NUM_UPLOAD_WORKERS = 32
+NUM_UPLOAD_WORKERS = 64
 
 upload_workers_status = [0 for i in range(NUM_UPLOAD_WORKERS)]
 

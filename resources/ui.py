@@ -9,9 +9,12 @@ class LiveUI:
     def __init__(self, initial_image, img_lims):
         plt.ion()
         dpi = 100
+        
+        self.preview_enabled = True
 
         # 1. Get dimensions
         h, w = initial_image.shape
+        self.init_img_shape = initial_image.shape
 
         # 2. Figure sizing logic
         max_dim = 14.0
@@ -59,6 +62,17 @@ class LiveUI:
             color="#e1e1e1",
             hovercolor="#ffd700",
         )
+        
+        # ---- Preview Toggle Button ----
+        self.ax_preview = plt.axes([0.7, 0.12, 0.2, 0.075])
+        self.btn_preview = Button(
+            self.ax_preview,
+            "Disable preview",
+            color="#e1e1e1",
+            hovercolor="#ff9999",
+        )
+
+        self.btn_preview.on_clicked(self._toggle_preview)
 
         # ---- Filename TextBox ----
         self.ax_text = plt.axes([0.25, 0.02, 0.5, 0.06])
@@ -99,6 +113,29 @@ class LiveUI:
         # Connect slider events
         self.slider_vmax.on_changed(self._update_contrast)
         self.slider_vmin.on_changed(self._update_contrast)
+        
+    def _toggle_preview(self, event):
+        self.preview_enabled = not self.preview_enabled
+
+        if self.preview_enabled:
+            self.btn_preview.label.set_text("Disable preview")
+            # Recreate image artist if needed
+            if self.im is None:
+                self.im = self.ax.imshow(
+                    np.zeros(self.init_img_shape),  # placeholder, will update next frame
+                    cmap="gray",
+                    vmin=self.vmin,
+                    vmax=self.vmax,
+                    aspect="equal",
+                )
+        else:
+            self.btn_preview.label.set_text("Enable preview")
+            # Remove image artist to save resources
+            if self.im is not None:
+                self.im.remove()
+                self.im = None
+
+        self.fig.canvas.draw_idle()
 
     def _update_contrast(self, val):
         """Callback triggered when sliders move."""
@@ -123,6 +160,9 @@ class LiveUI:
 
     def update_image(self, image):
         """Standard update loop for live feed."""
+        if not self.preview_enabled:
+            return
+        
         if self.im is not None:
             self.im.set_data(image)
             # Ensure the contrast settings from sliders are applied to the new frame

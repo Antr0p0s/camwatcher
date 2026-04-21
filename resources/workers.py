@@ -130,13 +130,14 @@ def upload_worker(worker, upload_workers_status, updates):
                  img_min=np.array([img_lims[0]]), 
                  img_max=np.array([img_lims[1]]))
         
-        latest_data['frames_uploaded'] += frames_data.shape[0] 
+        n_chunks = frames_data.shape[0] 
+        latest_data['frames_uploaded'] += n_chunks 
         
-        print(f"[UPLOADER {worker + 1}] Uploading chunk {chunk_idx} (frames uploaded: {latest_data['frames_uploaded']} out of {latest_data['total_frames']}, using {sum(upload_workers_status)}/{len(upload_workers_status)} upload threads)")
+        print(f"[UPLOADER {worker + 1}] Uploading chunk {chunk_idx} (frames: {n_chunks}, frames uploaded: {latest_data['frames_uploaded']} out of {latest_data['total_frames']}, using {sum(upload_workers_status)}/{len(upload_workers_status)} upload threads)")
 
         success = False
         # Try up to 3 times before giving up and skipping
-        for attempt in range(3):
+        for attempt in range(2):
             try:
                 buffer.seek(0)  # CRITICAL: Reset pointer for EVERY attempt
                 files = {"file": (f"chunk_{chunk_idx}.npz", buffer, "application/octet-stream")}
@@ -146,7 +147,7 @@ def upload_worker(worker, upload_workers_status, updates):
                     files=files,
                     headers=headers,
                     data={"chunk_index": chunk_idx},
-                    timeout=30 if attempt > 0 else 60
+                    timeout=120
                 )
 
                 if response.status_code == 200:
@@ -163,7 +164,7 @@ def upload_worker(worker, upload_workers_status, updates):
                 time.sleep(1)
 
         if not success:
-            print(f"[UPLOADER {worker}] PERMANENT FAILURE for chunk {chunk_idx}. Skipping.")
+            print(f"[UPLOADER {worker}] PERMANENT FAILURE for chunk {chunk_idx}. Skipping {n_chunks} frames.")
             try:
                 # Use a specific timeout for skip to ensure it actually hits
                 session.post(f"{api_url}/skip_chunk", 

@@ -12,10 +12,11 @@ from resources.pressureWorker import pressure_acquisition_thread
 from resources.apiHandling import trigger_server_compilation, cleanup_server, ping_api
 from resources.setBounds import get_manual_bubble_mask
 from dotenv import load_dotenv
- 
+import os
+
 load_dotenv()
 
-DEV_MODE = True# os.getenv("ENVIRONMENT") == 'dev'
+DEV_MODE = os.getenv("ENVIRONMENT") == 'dev'
 print(f'Running in {"DEV" if DEV_MODE else 'PROD'}')
 # ---------------------------
 # ConfigurationS

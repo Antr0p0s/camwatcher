@@ -2,7 +2,7 @@ import math
 import time
 import serial
 
-PORT = "/dev/ttyUSB0" # was COM9
+PORT = "COM9"# "/dev/ttyUSB0" # was COM9
 BAUD = 9600
 BYTESIZE = 7
 PARITY = 'E'

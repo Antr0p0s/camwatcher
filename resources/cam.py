@@ -46,7 +46,7 @@ class PixelFlyCamera:
 
             # Update our tracker and return the new data
             self.last_frame_index = self.latest_index
-            return image.astype(np.uint16)
+            return image.astype(np.float16)
 
         except (pco.camera_exception.CameraException, RuntimeError):
             # No image available yet or camera busy

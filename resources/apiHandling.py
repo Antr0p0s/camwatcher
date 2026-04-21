@@ -4,6 +4,7 @@ import os
 from dotenv import load_dotenv
 import subprocess
 import sys
+import time
  
 load_dotenv()
 
@@ -18,7 +19,7 @@ def cleanup_server(api_url):
         # Updated to check for 'cleared_count' from our new backend logic
         print(f"Server Cleaned: {data.get('cleared_frames')} frames, {data.get("processed_frames_cleared")} processed fames and {data.get('cleared_exports')} exports removed.")
     else:
-        print("Cleanup failed.")
+        raise Exception("Cleanup failed.")
         
 def backup_to_s3(api_url):
     url = f"{api_url}/backup-data"
@@ -28,7 +29,7 @@ def backup_to_s3(api_url):
         # stream=True is the key. 
         # timeout here applies to the 'connect' and 'first byte', 
         # but we handle the rest line-by-line.
-        with requests.post(url, headers=headers, timeout=(10, None), stream=True) as response:
+        with requests.post(url, headers=headers, timeout=(10, None), stream=True, params={"force_backup":True}) as response:
             if response.status_code != 200:
                 print(f"[COMPILER] Backup Failed (Status {response.status_code}): {response.text}")
                 return False
@@ -55,12 +56,18 @@ def backup_to_s3(api_url):
         print(f"[COMPILER] Connection failed: {e}")
         return False
 
-def trigger_server_compilation(api_url, FORCE_BACKUP, DEV_MODE, filename="output"):
+def trigger_server_compilation(api_url, FORCE_BACKUP, DEV_MODE, upload_workers_status, filename="output"):
     # Optional: enforce .mp4
     filename = filename.split('.')[0]
 
     url = f"{api_url}/export-data"
 
+    if sum(upload_workers_status) > 0:
+        print(f"[COMPILER] Not yet compiling, {sum(upload_workers_status)} uploaders still uploading")
+        time.sleep(5)
+        trigger_server_compilation(api_url, FORCE_BACKUP, DEV_MODE, upload_workers_status, filename)
+        return 
+        
     print(f"[COMPILER] Requesting export with limits")
 
     try:
@@ -145,7 +152,6 @@ def trigger_server_compilation(api_url, FORCE_BACKUP, DEV_MODE, filename="output
             print("[COMPILER] No final data received.")
             return False
         
-        return print("[COMPILER] Download URLS received, aborting mission")
 
         os.makedirs("data", exist_ok=True)
 

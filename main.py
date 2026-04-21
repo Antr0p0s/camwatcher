@@ -6,39 +6,35 @@ from collections import deque
 
 from resources.cam import PixelFlyCamera
 from resources.ui import LiveUI
-from resources.workers import acquisition_thread, save_buffer_worker
+from resources.workers import acquisition_thread, save_buffer_worker, upload_worker
 from resources.tempWorker import temperature_acquisition_thread
 from resources.pressureWorker import pressure_acquisition_thread
 from resources.apiHandling import trigger_server_compilation, cleanup_server, ping_api
 from resources.setBounds import get_manual_bubble_mask
 from dotenv import load_dotenv
-import os
  
 load_dotenv()
 
-DEV_MODE = os.getenv("ENVIRONMENT") == 'dev'
+DEV_MODE = True# os.getenv("ENVIRONMENT") == 'dev'
 print(f'Running in {"DEV" if DEV_MODE else 'PROD'}')
 # ---------------------------
 # ConfigurationS
 # ---------------------------
 VIDEO_FPS = 15 # FPS used in the final video
-MAX_BUFFER = 5 # memory - then it gets uploaded to the server mostly to keep under the cloudflare 50MB limit
+MAX_BUFFER = 5 
 FPS_WINDOW = 20 #FPS for the window
 FORCE_BACKUP = True
 USE_FAKE_TEMPS = DEV_MODE
 USE_FAKE_PRESSURE = DEV_MODE
-AUTO_ENABLE_RECORDING = False #not DEV_MODE
+AUTO_ENABLE_RECORDING = True #not DEV_MODE
 
-# 
-# [UPLOADER] Hard Failure on 2293: HTTPSConnectionPool(host='stage.randomwebserver.eu', port=443): Max retries exceeded with url: /upload_data (Caused by SSLError(SSLEOFError(8, 'EOF occurred in violation of protocol (_ssl.c:2406)')))
-# [UPLOADER] Hard Failure on 2296: HTTPSConnectionPool(host='stage.randomwebserver.eu', port=443): Max retries exceeded with url: /upload_data (Caused by SSLError(SSLEOFError(8, 'EOF occurred in violation of protocol (_ssl.c:2406)')))
-# 
 # ---------------------------
 # State
 # ---------------------------
 recording = False
 FRAME_TIME = 1.0 / FPS_WINDOW
 API_URL = 'http://127.0.0.1:8000/' if DEV_MODE else "https://stage.randomwebserver.eu"
+API_URL = "https://stage.randomwebserver.eu"
 
 if not ping_api(API_URL):
     raise LookupError('Server not online')
@@ -46,8 +42,7 @@ if not ping_api(API_URL):
 cleanup_server(API_URL)
 
 # load the camera
-camera = PixelFlyCamera(frame_time=FRAME_TIME, exposure_time=0.02)
-
+camera = PixelFlyCamera(frame_time=FRAME_TIME, exposure_time=0.1)
 # dicts for global variables
 temperatures = {"current_temps" : [0,0,0,0,0]}
 pressure = {"current_pressure" : 0, 'current_status': 0}
@@ -55,7 +50,7 @@ pressure = {"current_pressure" : 0, 'current_status': 0}
 # dict to get the latest updates
 updates = {
     "total": 0,
-    "ignored_temps": 0 ,
+    "skipped_chunks": 0 ,
     "current_rendered": 0
 }
 
@@ -106,6 +101,23 @@ pressure_thread = threading.Thread(
     daemon=True
 )
 
+NUM_UPLOAD_WORKERS = 32
+
+upload_workers_status = [0 for i in range(NUM_UPLOAD_WORKERS)]
+
+upload_threads = []
+
+for worker in range(NUM_UPLOAD_WORKERS):
+    t = threading.Thread(
+        target=upload_worker,
+        args=(worker, upload_workers_status, updates,),
+        daemon=True
+    )
+    t.start()
+    upload_threads.append(t)
+
+print(f'[UPLOAD THREADS] {NUM_UPLOAD_WORKERS} have initialised')
+
 acq_thread.start()
 temp_thread.start()
 pressure_thread.start()
@@ -144,7 +156,7 @@ def toggle_recording(event):
         # 2. CREATE A NEW THREAD OBJECT
         chunk_thread = threading.Thread(
             target=save_buffer_worker,
-            args=(frames_buffer, timestamps_buffer, temperatures_buffer, pressures_buffer, chunk_event, updates, MAX_BUFFER, API_URL, ui, recording),
+            args=(frames_buffer, timestamps_buffer, temperatures_buffer, pressures_buffer, chunk_event, MAX_BUFFER, API_URL, ui, recording),
             daemon=True
         )
         # 3. Start it
@@ -193,7 +205,7 @@ try:
                     temperatures_buffer.append(current_temp_snapshot) 
                     pressures_buffer.append(current_pressure_snapshot)
                     # temp for easy testing
-                elif current_pressure_snapshot < 1000 and AUTO_ENABLE_RECORDING:
+                elif current_pressure_snapshot < 100 and AUTO_ENABLE_RECORDING:
                     toggle_recording(1)
                 
                 got_frame = True
@@ -212,7 +224,7 @@ try:
             t3 = f'{temperatures["current_temps"][2]:0.1f}'
             t4 = f'{temperatures["current_temps"][3]:0.1f}'
             text1 = f'Time: {frame_timestamp:0.1f} - temps: {t1}, {t2}, {t3}, {t4}'
-            text2 = f'Total frames: {updates['total']} (rendered: {updates['current_rendered']}) - ignored temps: {updates['ignored_temps']}'
+            text2 = f'Total frames: {updates['total']} (rendered: {updates['current_rendered']}) - skipped chunks: {updates['skipped_chunks']}'
             text3 = f'Pressure: {(pressure["current_pressure"]):0.1f} mbar - status: {pressure['current_status']}'
             combined_text = f"{text2}\n{text1}\n{text3}"
             ui.set_sub_title(combined_text)
@@ -249,7 +261,7 @@ finally:
     chunk_thread.join()
 
     filename = ui.get_filename()
-    success_mp4 = trigger_server_compilation(API_URL, FORCE_BACKUP, DEV_MODE, filename)
+    success_mp4 = trigger_server_compilation(API_URL, FORCE_BACKUP, DEV_MODE, upload_workers_status, filename)
     # cleanup_server(API_URL)
 
 

@@ -44,7 +44,7 @@ class LiveUI:
             aspect="equal",
         )
 
-        self.filename = "auto_upload_test"
+        self.filename = "prct_"
         self._build_ui()
         
         self.fig.canvas.draw()

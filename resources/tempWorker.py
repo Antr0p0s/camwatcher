@@ -1,10 +1,10 @@
 import math
 import time
 from collections import deque
-from resources.MCCDAQ.mccEthernet import mccDiscover
 
 BOARD_NUM = 0
 OFFSETS = [0.598540, 0.261689, 0.0, 0.101573, 0.0]
+PROBE_ORDER=[0, 1, 3, 2] 
 NUM_PROBES = 4
 
 
@@ -52,30 +52,45 @@ class MCCBackend:
 
 # =========================================================
 # LINUX BACKEND (uldaq)
+# =========================================================
 class LinuxULDAQBackend:
     def __init__(self):
-        from resources.MCCDAQ.E_TC import E_TC
+        from uldaq import (
+            get_daq_device_inventory,
+            DaqDevice,
+            InterfaceType,
+            TInFlag
+        )
 
-        self.E_TC = E_TC
-        self.dev = None
+        self.get_daq_device_inventory = get_daq_device_inventory
+        self.DaqDevice = DaqDevice
+        self.InterfaceType = InterfaceType
+        self.TInFlag = TInFlag
 
-    def connect(self):
-        from resources.MCCDAQ.E_TC import E_TC, mccEthernetDevice
+        self.daq_device = None
+        self.t_in_device = None
 
-        device = mccEthernetDevice()
-        device.address = "192.168.0.100"   # static IP
+    def connect(self, board_num):
+        devices = self.get_daq_device_inventory(self.InterfaceType.USB)
+        if not devices:
+            raise RuntimeError("No ULDAQ devices found")
 
-        self.dev = E_TC(device)
-        self.dev.open()
+        self.daq_device = self.DaqDevice(devices[0])
+        self.daq_device.connect()
 
-        print("[TEMP] Connected directly to DAQ")
+        self.t_in_device = self.daq_device.get_t_in_device()
 
-        def read_temp(self, board_num, channel):
-            return self.dev.t_in(channel)
+        print("[TEMP] Linux ULDAQ connected")
 
-        def close(self, board_num):
-            if self.dev:
-                self.dev.close()
+    def read_temp(self, board_num, channel):
+        # ULDAQ reads temperature directly per channel
+        return self.t_in_device.t_in(channel, self.TInFlag.DEFAULT)
+
+    def close(self, board_num):
+        if self.daq_device:
+            self.daq_device.disconnect()
+            self.daq_device.release()
+            
             
 import math
 import time
@@ -124,11 +139,12 @@ def get_backend(USE_FAKE_TEMPS):
         pass
 
     try:
+        print('running linux DAQ')
         return LinuxULDAQBackend()
-    except Exception as e:
-        print(e)
-        print("No DAQ backend available (mcculw or uldaq missing)")
-        return FakeBackend()
+    except NameError:
+        raise RuntimeError(
+            "No DAQ backend available (mcculw or uldaq missing)"
+        )
 
 
 # =========================================================
@@ -147,12 +163,17 @@ def temperature_acquisition_thread(USE_FAKE_TEMPS, temperatures, stop_event):
             current_temps = [0] * NUM_PROBES
 
             for i in range(NUM_PROBES):
-                raw_temp = backend.read_temp(BOARD_NUM, i)
+                try:
+                    probe_num = PROBE_ORDER[i]
+                    raw_temp = backend.read_temp(BOARD_NUM, probe_num)
 
-                history[i].append(raw_temp)
-                avg_temp = sum(history[i]) / len(history[i])
+                    history[probe_num].append(raw_temp)
+                    avg_temp = sum(history[probe_num]) / len(history[probe_num])
 
-                current_temps[i] = convert_temperature(avg_temp, i)
+                    current_temps[probe_num] = convert_temperature(avg_temp, probe_num)
+                except Exception as e:
+                    print(f"[TEMP] Runtime error: {e}")
+                    temperatures["current_temps"] = [-1000] * NUM_PROBES
 
             temperatures["current_temps"] = current_temps
             time.sleep(1 / 14)

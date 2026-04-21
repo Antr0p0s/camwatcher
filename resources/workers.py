@@ -175,4 +175,5 @@ def upload_worker(worker, upload_workers_status, updates):
                 print(f"[UPLOADER {worker}] Could not even send SKIP command for {chunk_idx}")
 
         upload_workers_status[worker] = 0
+        print(f"[UPLOADER {worker + 1}] Uploaded chunk {chunk_idx}")
         upload_queue.task_done()

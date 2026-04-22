@@ -61,44 +61,18 @@ latest_data = {
     "total_frames": 0
 }
 
-def get_oldest_chunk_file(temp_dir="./temp"):
-    files = [f for f in os.listdir(temp_dir) if f.startswith("chunk_") and f.endswith(".npz")]
-    if not files:
-        return None
-
-    # sort by chunk index
-    files.sort(key=lambda x: int(x.split("_")[1].split(".")[0]))
-    return os.path.join(temp_dir, files[0])
-
-def temp_has_files(temp_dir="./temp"):
-    return any(
-        f.startswith("chunk_") and f.endswith(".npz")
-        for f in os.listdir(temp_dir)
-    )
-
 def save_buffer_worker(frames_buffer, timestamps_buffer, temperatures_buffer, pressures_buffer,
-                       stop_event, max_buffer, api_url, ui, recording,
-                       upload_workers_status):
+                       stop_event, max_buffer, api_url, ui, recording):
 
     global chunk_counter, latest_data
 
-    os.makedirs("./temp", exist_ok=True)
-
-    print("[DISPATCHER] Started")
+    print("[UPLOADER] Dispatcher started")
 
     while not stop_event.is_set() or len(frames_buffer) > 0:
-        # 🔥 1. PRIORITY: send oldest disk chunk if worker available
-        if 0 in upload_workers_status:
-            oldest = get_oldest_chunk_file()
-            if oldest is not None:
-                try:
-                    upload_queue.put((api_url, idx, oldest), timeout=0.1)
-                except queue.Full:
-                    pass
-                continue
-        # 🔥 2. Process RAM buffer
-        if len(frames_buffer) >= max_buffer or (stop_event.is_set() and len(frames_buffer) > 0 or temp_has_files()):
 
+        if len(frames_buffer) >= max_buffer or (stop_event.is_set() and len(frames_buffer) > 0):
+
+            # snapshot (fast shallow copy)
             frames_raw = frames_buffer.copy()
             times_raw = timestamps_buffer.copy()
             temps_raw = temperatures_buffer.copy()
@@ -109,52 +83,30 @@ def save_buffer_worker(frames_buffer, timestamps_buffer, temperatures_buffer, pr
             temperatures_buffer.clear()
             pressures_buffer.clear()
 
-            latest_data['total_frames'] += len(frames_raw)
+            frames_data = np.array(frames_raw, dtype=np.float16)
 
+            latest_data['total_frames'] += frames_data.shape[0]
+
+            # split into chunks
             if recording:
                 for i in range(0, len(frames_raw), max_buffer):
 
-                    chunk_frames = frames_raw[i:i+max_buffer]
-                    chunk_times = times_raw[i:i+max_buffer]
-                    chunk_temps = temps_raw[i:i+max_buffer]
-                    chunk_press = press_raw[i:i+max_buffer]
+                    upload_queue.put((
+                        api_url,
+                        chunk_counter,
+                        frames_raw[i:i+max_buffer],
+                        times_raw[i:i+max_buffer],
+                        temps_raw[i:i+max_buffer],
+                        press_raw[i:i+max_buffer],
+                        ui.get_img_lims()
+                    ))
 
-                    chunk_idx = chunk_counter
                     chunk_counter += 1
 
-                    # 🚀 If worker available → send directly (NO disk)
-                    if 0 in upload_workers_status:
-                        upload_queue.put((
-                            api_url,
-                            chunk_idx,
-                            chunk_frames,
-                            chunk_times,
-                            chunk_temps,
-                            chunk_press,
-                            ui.get_img_lims()
-                        ))
-
-                    # 💾 Otherwise → write to disk
-                    else:
-                        filename = f"./temp/chunk_{chunk_idx}.npz"
-
-                        np.savez(
-                            filename,
-                            frames=np.array(chunk_frames, dtype=np.float16),
-                            timestamps=np.array(chunk_times, dtype=np.float16),
-                            temperatures=np.array(chunk_temps, dtype=np.float16),
-                            pressures=np.array(chunk_press, dtype=np.float16),
-                            img_min=np.array([ui.get_img_lims()[0]]),
-                            img_max=np.array([ui.get_img_lims()[1]])
-                        )
-
         else:
-            if len(frames_buffer) == 0 and temp_has_files():
-                time.sleep(0.5)
-            else:
-                time.sleep(0.05)
+            time.sleep(0.2)
 
-    print("[DISPATCHER] Stopped")
+    print("[UPLOADER] Dispatcher stopped")
 
 def upload_worker(worker, upload_workers_status, updates):
     global latest_data
@@ -162,41 +114,23 @@ def upload_worker(worker, upload_workers_status, updates):
 
     while True:
         item = upload_queue.get()
-        if item is None:
-            break
+        if item is None: break
 
+        api_url, chunk_idx, frames, timestamps, temps, pressures, img_lims = item
         upload_workers_status[worker] = 1
-
-        # Detect mode
-        if len(item) == 3:
-            # 💾 Disk mode
-            api_url, chunk_idx, filename = item
-
-            with open(filename, "rb") as f:
-                buffer = io.BytesIO(f.read())
-
-            with np.load(filename) as data:
-                n_chunks = data["frames"].shape[0]
-
-            delete_after = True
-
-        else:
-            # 🚀 RAM mode
-            api_url, chunk_idx, frames, timestamps, temps, pressures, img_lims = item
-
-            buffer = io.BytesIO()
-            frames_data = np.array(frames, dtype=np.float16)
-
-            np.savez(buffer,
-                    frames=frames_data,
-                    timestamps=np.array(timestamps, dtype=np.float16),
-                    temperatures=np.array(temps, dtype=np.float16),
-                    pressures=np.array(pressures, dtype=np.float16),
-                    img_min=np.array([img_lims[0]]),
-                    img_max=np.array([img_lims[1]]))
-
-            n_chunks = frames_data.shape[0]
-            delete_after = False
+        
+        # Prepare the binary data once
+        buffer = io.BytesIO()
+        frames_data = np.array(frames, dtype=np.float16)
+        np.savez(buffer, 
+                 frames=frames_data, 
+                 timestamps=np.array(timestamps, dtype=np.float16),
+                 temperatures=np.array(temps, dtype=np.float16),
+                 pressures=np.array(pressures, dtype=np.float16),
+                 img_min=np.array([img_lims[0]]), 
+                 img_max=np.array([img_lims[1]]))
+        
+        n_chunks = frames_data.shape[0] 
         latest_data['frames_uploaded'] += n_chunks 
         
         print(f"[UPLOADER {worker + 1}] Uploading chunk {chunk_idx} (frames: {n_chunks}, frames uploaded: {latest_data['frames_uploaded']} out of {latest_data['total_frames']}, using {sum(upload_workers_status)}/{len(upload_workers_status)} upload threads)")
@@ -243,9 +177,4 @@ def upload_worker(worker, upload_workers_status, updates):
 
         upload_workers_status[worker] = 0
         print(f"[UPLOADER {worker + 1}] Uploaded chunk {chunk_idx}")
-        if delete_after:
-            try:
-                os.remove(filename)
-            except:
-                pass
         upload_queue.task_done()

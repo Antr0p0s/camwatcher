@@ -28,6 +28,7 @@ FORCE_BACKUP = True
 USE_FAKE_TEMPS = DEV_MODE
 USE_FAKE_PRESSURE = DEV_MODE
 AUTO_ENABLE_RECORDING = True #not DEV_MODE
+NUM_UPLOAD_WORKERS = 4
 
 # ---------------------------
 # State
@@ -102,8 +103,6 @@ pressure_thread = threading.Thread(
     daemon=True
 )
 
-NUM_UPLOAD_WORKERS = 64
-
 upload_workers_status = [0 for i in range(NUM_UPLOAD_WORKERS)]
 
 upload_threads = []
@@ -157,7 +156,7 @@ def toggle_recording(event):
         # 2. CREATE A NEW THREAD OBJECT
         chunk_thread = threading.Thread(
             target=save_buffer_worker,
-            args=(frames_buffer, timestamps_buffer, temperatures_buffer, pressures_buffer, chunk_event, MAX_BUFFER, API_URL, ui, recording),
+            args=(frames_buffer, timestamps_buffer, temperatures_buffer, pressures_buffer, chunk_event, MAX_BUFFER, API_URL, ui, recording, upload_workers_status),
             daemon=True
         )
         # 3. Start it

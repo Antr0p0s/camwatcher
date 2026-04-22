@@ -7,7 +7,7 @@ SAVE_LOC = r'P:\PIN\Users\Jelmer\no video data'
 
 def save_data(temperatures, pressures, timestamps):
     BASE_SAVE_LOC = (f"{SAVE_LOC}\\{datetime.now().strftime('%Y-%m-%d-%H-%M')}")
-    BASE_SAVE_LOC = (f"{SAVE_LOC}\\testing")
+    # BASE_SAVE_LOC = (f"{SAVE_LOC}\\testing")
     os.makedirs(SAVE_LOC, exist_ok=True)
     os.makedirs(BASE_SAVE_LOC, exist_ok=True)
 

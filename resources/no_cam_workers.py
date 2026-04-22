@@ -2,8 +2,12 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 from datetime import datetime
+from dotenv import load_dotenv
+import os
 
-SAVE_LOC = r'P:\PIN\Users\Jelmer\no video data'
+load_dotenv()
+
+SAVE_LOC = os.getenv("SAVE_LOC")
 
 def save_data(temperatures, pressures, timestamps):
     BASE_SAVE_LOC = (f"{SAVE_LOC}\\{datetime.now().strftime('%Y-%m-%d-%H-%M')}")

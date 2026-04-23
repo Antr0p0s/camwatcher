@@ -111,15 +111,27 @@ class TempMonitorApp:
         for i in range(NUM_PROBES):
             frame = tk.Frame(self.root, bg="#34495e")
             frame.pack(pady=5, padx=30, fill="x")
-            tk.Label(frame, text=f"Probe {i+1}", bg="#34495e", fg="#bdc3c7").pack(side="left")
-            
+
+            tk.Label(frame, text=f"Probe {i+1}",
+                    bg="#34495e", fg="#bdc3c7").pack(side="left")
+
             var = tk.StringVar(value="--.- °C")
             self.temp_vars.append(var)
-            tk.Label(frame, textvariable=var, font=("Courier", 16, "bold"),
-                     bg="#34495e", fg=colors[i]).pack(side="right")
+
+            # 🔹 Button FIRST → goes furthest right
+            btn = tk.Button(frame, text="📋 Copy",
+                            bg="#34495e", fg="#ecf0f1",
+                            activebackground="#1abc9c")
+            btn.config(command=lambda idx=i, b=btn: self.copy_index_to_clipboard(idx, b))
+            btn.pack(side="right", padx=(5, 0))
+
+            # 🔹 Temperature SECOND → sits left of button
+            tk.Label(frame, textvariable=var,
+                    font=("Courier", 16, "bold"),
+                    bg="#34495e", fg=colors[i]).pack(side="right", padx=(0, 10))
 
         self.status = tk.Label(self.root, text="Idle", bg="#2c3e50", fg="#95a5a6")
-        self.status.pack(pady=10)
+        self.status.pack(pady=10, padx=(5, 10))
 
         self.btn = tk.Button(self.root, text="Start Recording",
                              command=self.toggle_recording, bg="#e1e1e1")
@@ -151,6 +163,18 @@ class TempMonitorApp:
         old_text = self.copy_btn.cget("text")
         self.copy_btn.config(text="✓ Copied!", fg="#2ecc71")
         self.root.after(1500, lambda: self.copy_btn.config(text=old_text, fg="#ecf0f1"))
+        
+    def copy_index_to_clipboard(self, index, button=None):
+        with self.lock:
+            value = self.current_temps[index]
+
+        self.root.clipboard_clear()
+        self.root.clipboard_append(f"{value:.2f}")
+
+        if button:
+            old_text = button.cget("text")
+            button.config(text="✓", fg="#2ecc71")
+            self.root.after(1000, lambda: button.config(text=old_text, fg="#ecf0f1"))
 
     def update_graph(self):
         if not running or not self.root.winfo_exists():

@@ -51,8 +51,10 @@ class TempMonitorApp:
 
         self.start_time = time.time()
         self.history = [deque(maxlen=5) for _ in range(NUM_PROBES)]
+        self.raw_history = [deque(maxlen=5) for _ in range(NUM_PROBES)]
 
         self.current_temps = [0.0] * NUM_PROBES
+        self.raw_temps = [0.0] * NUM_PROBES
         self.lock = threading.Lock()
 
         self.device_connected = False
@@ -167,9 +169,10 @@ class TempMonitorApp:
     def copy_index_to_clipboard(self, index, button=None):
         with self.lock:
             value = self.current_temps[index]
+            raw_value = self.raw_temps[index]
 
         self.root.clipboard_clear()
-        self.root.clipboard_append(f"{value:.2f}")
+        self.root.clipboard_append(f"{value:.2f}\t{raw_value:.2f}")
 
         if button:
             old_text = button.cget("text")
@@ -209,6 +212,7 @@ class TempMonitorApp:
         while running:
             current_time = time.time() - self.start_time
             temps_now = []
+            raw_now = []
 
             # 1. ALWAYS Read Temperatures
             for i in range(NUM_PROBES):
@@ -222,12 +226,18 @@ class TempMonitorApp:
 
                 temp = convert_temperature(raw, i)
                 self.history[i].append(temp)
+                self.raw_history[i].append(raw)
+                
                 avg = sum(self.history[i]) / len(self.history[i])
                 temps_now.append(avg)
+                
+                raw_avg = sum(self.raw_history[i]) / len(self.raw_history[i])
+                raw_now.append(raw_avg)
 
             # 2. ALWAYS update current_temps (for UI and Clipboard)
             with self.lock:
                 self.current_temps = temps_now
+                self.raw_temps = raw_now
 
             # 3. ONLY save to buffer if recording
             if recording:
@@ -240,9 +250,10 @@ class TempMonitorApp:
         while running:
             with self.lock:
                 temps = list(self.current_temps)
+                raw_temps = list(self.raw_temps)
             try:
                 for i in range(NUM_PROBES):
-                    self.temp_vars[i].set(f"{temps[i]:.1f} °C")
+                    self.temp_vars[i].set(f"{temps[i]:.1f} ({raw_temps[i]:.1f}) °C")
             except Exception:
                 break
             time.sleep(0.2)

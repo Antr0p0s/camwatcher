@@ -16,7 +16,7 @@ import sys
 # ---------------------------
 # Config
 # ---------------------------
-USE_FAKE_TEMPS = True
+USE_FAKE_TEMPS = False
 PROBE_PORTS = [0, 1, 2, 3]
 NUM_PROBES = len(PROBE_PORTS)
 
@@ -84,6 +84,7 @@ class TempMonitorApp:
             self.device_connected = True
             self.status.config(text=f"Connected: {devices[0].product_name}", fg="#2ecc71")
         except ULError as e:
+            print(f"DAQ Error: {e.message}")
             self.status.config(text="DAQ Error", fg="#e74c3c")
 
     def setup_ui(self):

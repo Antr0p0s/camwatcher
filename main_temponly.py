@@ -257,7 +257,6 @@ class TempMonitorApp:
     def on_close(self):
         global running
         running = False
-        self.ul.release_daq_device(self.board_num)
         self.root.destroy()
         sys.exit(0)
         
@@ -268,9 +267,9 @@ class TempMonitorApp:
         if not data:
             return
 
-        lines = ["Measured\tRaw"]
+        lines = []
         for _, m, r in data:
-            lines.append(f"{m:.2f}\t{r:.2f}")
+            lines.append(f"{r}")
 
         text = "\n".join(lines)
 

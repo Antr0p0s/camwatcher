@@ -79,8 +79,9 @@ class TempMonitorApp:
             if not devices:
                 self.status.config(text="No DAQ Found", fg="#e74c3c")
                 return
-
-            ul.create_daq_device(self.board_num, devices[0])
+            self.ul = ul
+            self.ul.create_daq_device(self.board_num, devices[0])
+            
             self.device_connected = True
             self.status.config(text=f"Connected: {devices[0].product_name}", fg="#2ecc71")
         except ULError as e:
@@ -227,7 +228,7 @@ class TempMonitorApp:
             temps_now, raw_now = [], []
 
             for i in range(NUM_PROBES):
-                raw = 20 + 2 * math.sin(t / 5 + i)
+                raw = 20 + 2 * math.sin(t / 5 + i) if USE_FAKE_TEMPS else self.ul.t_in(self.board_num, i, TempScale.CELSIUS)
                 temp = convert_temperature(raw, i)
 
                 self.history[i].append(temp)
@@ -256,6 +257,7 @@ class TempMonitorApp:
     def on_close(self):
         global running
         running = False
+        self.ul.release_daq_device(self.board_num)
         self.root.destroy()
         sys.exit(0)
         

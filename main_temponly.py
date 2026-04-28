@@ -171,7 +171,7 @@ class TempMonitorApp:
 
         # Clipboard (single point)
         self.root.clipboard_clear()
-        self.root.clipboard_append(f"{expected:.2f}\t{measured:.2f}\t{raw:.2f}")
+        self.root.clipboard_append(raw)
 
         self.update_calibration_plot()
 

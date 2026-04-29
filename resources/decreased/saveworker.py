@@ -5,11 +5,7 @@ import numpy as np
 
 def save_buffer_worker(frames_buffer, timestamps_buffer, temperatures_buffer, pressures_buffer, stop_event, updates, chunk_size):
     chunk_counter = 1
-<<<<<<< HEAD
     chunk_dir = f'./data/chunks/{datetime.now().strftime('%m-%d-%H-%M')}'
-=======
-    chunk_dir = "./data/chunks/devtime" # f'./data/chunks/{datetime.now().strftime('%m-%d-%H-%M')}'
->>>>>>> 81c608f459080df08e2b390f4373f317c19cb319
 
     os.makedirs(chunk_dir, exist_ok=True)
 
@@ -18,10 +14,6 @@ def save_buffer_worker(frames_buffer, timestamps_buffer, temperatures_buffer, pr
     while not stop_event.is_set():
         updates['total'] = updates['saved'] + len(frames_buffer)
         if len(frames_buffer) > chunk_size:
-<<<<<<< HEAD
-=======
-            print('save the data')
->>>>>>> 81c608f459080df08e2b390f4373f317c19cb319
             frames_raw = frames_buffer.copy()
             times_raw = timestamps_buffer.copy()
             temps_raw = temperatures_buffer.copy()

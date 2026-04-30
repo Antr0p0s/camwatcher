@@ -10,9 +10,11 @@ NUM_PROBES = 4
 
 
 def convert_temperature(measured_temp, probe_no):
-    if probe_no ==  0: # blue
+    probe = PROBE_ORDER[probe_no]
+    
+    if probe ==  0: # blue
         return (5.2213 * 10^-4) * math.exp(0.52389 * measured_temp)
-    return COEFFICIENTS[probe_no] * measured_temp + OFFSETS[probe_no]
+    return COEFFICIENTS[probe] * measured_temp + OFFSETS[probe]
 
 class MCCBackend:
     def __init__(self):

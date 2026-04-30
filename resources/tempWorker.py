@@ -3,18 +3,17 @@ import time
 from collections import deque
 
 BOARD_NUM = 0
-OFFSETS = [0.598540, 0.261689, 0.0, 0.101573, 0.0]
+OFFSETS = [0, -24.501, -42.082, -16.723] # blue, black, red, white
+COEFFICIENTS = [0, 2.108, 2.8839, 1.6371]
 PROBE_ORDER=[0, 1, 3, 2] 
 NUM_PROBES = 4
 
 
 def convert_temperature(measured_temp, probe_no):
-    return 1.293 * measured_temp - 9.828 + OFFSETS[probe_no]
+    if probe_no ==  0: # blue
+        return (5.2213 * 10^-4) * math.exp(0.52389 * measured_temp)
+    return COEFFICIENTS[probe_no] * measured_temp + OFFSETS[probe_no]
 
-
-# =========================================================
-# WINDOWS BACKEND (mcculw)
-# =========================================================
 class MCCBackend:
     def __init__(self):
         from mcculw import ul
@@ -48,52 +47,6 @@ class MCCBackend:
 
     def close(self, board_num):
         self.ul.release_daq_device(board_num)
-
-
-# =========================================================
-# LINUX BACKEND (uldaq)
-# =========================================================
-class LinuxULDAQBackend:
-    def __init__(self):
-        from uldaq import (
-            get_daq_device_inventory,
-            DaqDevice,
-            InterfaceType,
-            TInFlag
-        )
-
-        self.get_daq_device_inventory = get_daq_device_inventory
-        self.DaqDevice = DaqDevice
-        self.InterfaceType = InterfaceType
-        self.TInFlag = TInFlag
-
-        self.daq_device = None
-        self.t_in_device = None
-
-    def connect(self, board_num):
-        devices = self.get_daq_device_inventory(self.InterfaceType.USB)
-        if not devices:
-            raise RuntimeError("No ULDAQ devices found")
-
-        self.daq_device = self.DaqDevice(devices[0])
-        self.daq_device.connect()
-
-        self.t_in_device = self.daq_device.get_t_in_device()
-
-        print("[TEMP] Linux ULDAQ connected")
-
-    def read_temp(self, board_num, channel):
-        # ULDAQ reads temperature directly per channel
-        return self.t_in_device.t_in(channel, self.TInFlag.DEFAULT)
-
-    def close(self, board_num):
-        if self.daq_device:
-            self.daq_device.disconnect()
-            self.daq_device.release()
-            
-            
-import math
-import time
 
 class FakeBackend:
     def __init__(self):
@@ -135,12 +88,7 @@ def get_backend(USE_FAKE_TEMPS):
     try:
         # Try Windows first
         return MCCBackend()
-    except NameError:
-        pass
-
-    try:
-        print('running linux DAQ')
-        return LinuxULDAQBackend()
+    
     except NameError:
         raise RuntimeError(
             "No DAQ backend available (mcculw or uldaq missing)"

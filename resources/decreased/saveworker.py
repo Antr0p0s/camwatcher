@@ -6,7 +6,7 @@ import numpy as np
 def save_buffer_worker(frames_buffer, timestamps_buffer, temperatures_buffer, 
                        pressures_buffer, stop_event, updates, chunk_size, chunk_dir):
     chunk_counter = 1
-    chunk_dir is chunk_dir if not chunk_dir.includes('prct') else f'./data/chunks/{datetime.now().strftime('%m-%d-%H-%M')}'
+    chunk_dir is chunk_dir if 'prct' not in chunk_dir else f'./data/chunks/{datetime.now().strftime('%m-%d-%H-%M')}'
 
     os.makedirs(chunk_dir, exist_ok=True)
 

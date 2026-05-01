@@ -13,7 +13,7 @@ def convert_temperature(measured_temp, probe_no):
     probe = PROBE_ORDER[probe_no]
     
     if probe ==  0: # blue
-        return (5.2213 * 10^-4) * math.exp(0.52389 * measured_temp)
+        return (0.00052213) * math.exp(0.52389 * measured_temp)
     return COEFFICIENTS[probe] * measured_temp + OFFSETS[probe]
 
 class MCCBackend:

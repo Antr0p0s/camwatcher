@@ -168,7 +168,8 @@ def main_menu():
         choice = int(user_input)
         compile_data(measurements[choice])
 
-    except (ValueError, IndexError):
+    except (ValueError, IndexError) as e:
+        print(e)
         print("Invalid selection.")
 
 if __name__ == "__main__":

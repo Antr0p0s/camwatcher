@@ -3,9 +3,10 @@ from datetime import datetime
 import time
 import numpy as np
 
-def save_buffer_worker(frames_buffer, timestamps_buffer, temperatures_buffer, pressures_buffer, stop_event, updates, chunk_size):
+def save_buffer_worker(frames_buffer, timestamps_buffer, temperatures_buffer, 
+                       pressures_buffer, stop_event, updates, chunk_size, chunk_dir):
     chunk_counter = 1
-    chunk_dir = f'./data/chunks/{datetime.now().strftime('%m-%d-%H-%M')}'
+    chunk_dir is chunk_dir if not chunk_dir.includes('prct') else f'./data/chunks/{datetime.now().strftime('%m-%d-%H-%M')}'
 
     os.makedirs(chunk_dir, exist_ok=True)
 
@@ -23,6 +24,11 @@ def save_buffer_worker(frames_buffer, timestamps_buffer, temperatures_buffer, pr
             timestamps_buffer.clear()
             temperatures_buffer.clear()
             pressures_buffer.clear()
+            
+            print(len(frames_raw))
+            print(len(times_raw))
+            print(len(temps_raw))
+            print(len(press_raw))
             
             filename = f"{chunk_dir}/chunk_{chunk_counter}.npz"
             updates['saved']+= len(frames_raw)

@@ -111,7 +111,7 @@ def toggle_recording(event):
         # 2. CREATE A NEW THREAD OBJECT
         chunk_thread = threading.Thread(
             target=save_buffer_worker,
-            args=(frames_buffer, timestamps_buffer, temperatures_buffer, pressures_buffer, chunk_event, updates, CHUNK_SIZE),
+            args=(frames_buffer, timestamps_buffer, temperatures_buffer, pressures_buffer, chunk_event, updates, CHUNK_SIZE, ui.get_filename()),
             daemon=True
         )
         # 3. Start it

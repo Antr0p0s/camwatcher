@@ -3,3 +3,4 @@ output
 resources/__pycache__
 *.pyc
 temp
+.env

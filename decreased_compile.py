@@ -26,6 +26,7 @@ def delete_folder(path, retries=5, delay=0.5):
 
 def compile_data(base_path):
     files = [f for f in os.listdir(base_path) if f.endswith(".npz")]
+    input_folder = base_path.split('/')[-1]
 
     if not files:
         print("No files found.")

@@ -25,7 +25,7 @@ USE_FAKE_TEMPS = DEV_MODE
 USE_FAKE_PRESSURE = DEV_MODE
 AUTO_ENABLE_RECORDING = True
 FPS_WINDOW = 20
-CHUNK_SIZE = 200
+CHUNK_SIZE = 100
 
 # dicts for global variables
 temperatures = {"current_temps" : [0,0,0,0]}

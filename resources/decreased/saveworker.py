@@ -3,10 +3,17 @@ from datetime import datetime
 import time
 import numpy as np
 
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+
+NO_CAM_SAVE_LOC = os.getenv("NO_CAM_SAVE_LOC")
+
 def save_buffer_worker(frames_buffer, timestamps_buffer, temperatures_buffer, 
                        pressures_buffer, stop_event, updates, chunk_size, chunk_name):
     chunk_counter = 1
-    chunk_dir = f'./data/chunks/{chunk_name}' if 'prct' not in chunk_name else f'./data/chunks/{datetime.now().strftime('%m-%d-%H-%M')}'
+    chunk_dir = f'{NO_CAM_SAVE_LOC}/{chunk_name}' if 'prct' not in chunk_name else f'{NO_CAM_SAVE_LOC}/chunks/{datetime.now().strftime('%m-%d-%H-%M')}'
 
     os.makedirs(chunk_dir, exist_ok=True)
 

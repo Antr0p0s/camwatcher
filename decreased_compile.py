@@ -24,8 +24,7 @@ def delete_folder(path, retries=5, delay=0.5):
 
     print(f"[CLEANUP] FAILED to delete: {path} (still locked)")
 
-def compile_data(input_folder):
-    base_path = f'./data/chunks/{input_folder}'
+def compile_data(base_path):
     files = [f for f in os.listdir(base_path) if f.endswith(".npz")]
 
     if not files:
@@ -147,7 +146,12 @@ def compile_data(input_folder):
     delete_folder(base_path)
 
 def main_menu():
-    measurements = os.listdir('./data/chunks')
+    local_folder = './data/chunks'
+    cloud_folder = 'C:/Users/jelme/OneDrive - University of Twente/stagemeasurements'
+    local_chunks = os.listdir(local_folder)
+    cloud_chunks = os.listdir(cloud_folder)
+    
+    measurements = [f'{local_folder}/{folder}' for folder in local_chunks] + [f'{cloud_folder}/{folder}' for folder in cloud_chunks]
     
     if not measurements:
         print("No measurements found.")

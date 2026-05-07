@@ -16,7 +16,7 @@ import sys
 # ---------------------------
 # Config
 # ---------------------------
-USE_FAKE_TEMPS = False
+USE_FAKE_TEMPS = True
 PROBE_PORTS = [0, 1, 2, 3]
 NUM_PROBES = len(PROBE_PORTS)
 
@@ -93,7 +93,7 @@ class TempMonitorApp:
                  font=("Arial", 18, "bold"),
                  bg="#2c3e50", fg="#ecf0f1").pack(pady=10)
 
-        self.copy_btn = tk.Button(self.root, text="📋 Copy Current Temps",
+        self.copy_btn = tk.Button(self.root, text="📋 Snapshot all temps",
                                  command=self.copy_to_clipboard,
                                  bg="#34495e", fg="#ecf0f1")
         self.copy_btn.pack(pady=5)
@@ -143,6 +143,10 @@ class TempMonitorApp:
         self.cal_ax.grid(True, alpha=0.3)
         
         tk.Button(self.root, text="📋 Copy Dataset",
+          command=self.copy_dataset,
+          bg="#8e44ad", fg="white").pack(pady=5)
+        
+        tk.Button(self.root, text="📋 Copy Full Dataset",
           command=self.copy_full_dataset,
           bg="#8e44ad", fg="white").pack(pady=5)
 
@@ -184,25 +188,31 @@ class TempMonitorApp:
         print(f"[CAL] Probe {index+1}: expected={expected:.2f}, measured={measured:.2f}, raw={raw:.2f}")
 
     def update_calibration_plot(self):
-        idx = self.active_probe
         self.cal_ax.clear()
 
-        self.cal_ax.set_title(f"Probe {idx+1} Calibration, expected: {self.expected_temp[idx]}")
+        self.cal_ax.set_title("Calibration Curves")
         self.cal_ax.set_xlabel("Expected (°C)")
         self.cal_ax.set_ylabel("Temperature (°C)")
         self.cal_ax.grid(True, alpha=0.3)
 
-        if self.calibration_data[idx]:
-            data = np.array(self.calibration_data[idx])
+        colors = ["#3399ff", "#000000", "#ff4d4d", "#3cff01"]
 
-            x = data[:, 0]  # expected
-            measured = data[:, 1]
-            raw = data[:, 2]
+        for idx in range(NUM_PROBES):
+            if self.calibration_data[idx]:
+                data = np.array(self.calibration_data[idx])
 
-            self.cal_ax.plot(x, measured, 'o-', label="Measured")
-            self.cal_ax.plot(x, raw, 's--', label="Raw")
+                x = data[:, 0]
+                raw = data[:, 2]
 
-        self.cal_ax.legend()
+                self.cal_ax.plot(
+                    x, raw,
+                    's--',
+                    color=colors[idx],
+                    alpha=0.6,
+                    label=f"P{idx+1} Raw"
+                )
+
+        self.cal_ax.legend(fontsize='x-small', ncol=2)
         self.cal_ax.invert_xaxis()
         self.cal_canvas.draw_idle()
 
@@ -215,11 +225,42 @@ class TempMonitorApp:
     # ---------------------------
     # Existing logic
     # ---------------------------
-    def copy_to_clipboard(self):
+    def copy_to_clipboard(self, button=None):
         with self.lock:
-            temp_strings = [f"{t:.2f}" for t in self.current_temps]
+            raw = list(self.raw_temps)
+            measured = list(self.current_temps)
+
+        # Snapshot ALL probes
+        for index in range(NUM_PROBES):
+            expected = self.expected_temp[index]
+
+            # Store per-probe values correctly
+            self.calibration_data[index].append(
+                (expected, measured[index], raw[index])
+            )
+
+            self.expected_temp[index] -= 0.5
+
+            print(
+                f"[CAL] Probe {index+1}: "
+                f"expected={expected:.2f}, "
+                f"measured={measured[index]:.2f}, "
+                f"raw={raw[index]:.2f}"
+            )
+        
+        # Clipboard
+        text = "\n".join([str(r) for r in raw])
+
         self.root.clipboard_clear()
-        self.root.clipboard_append("\t".join(temp_strings))
+        self.root.clipboard_append(text)
+
+        self.update_calibration_plot()
+
+        if button:
+            old = button.cget("text")
+            button.config(text="✓", fg="#2ecc71")
+            self.root.after(200, lambda: button.config(text=old, fg="#ecf0f1"))
+
 
     def temp_loop(self):
         global running
@@ -260,7 +301,7 @@ class TempMonitorApp:
         self.root.destroy()
         sys.exit(0)
         
-    def copy_full_dataset(self):
+    def copy_dataset(self):
         idx = self.active_probe
         data = self.calibration_data[idx]
 
@@ -277,6 +318,41 @@ class TempMonitorApp:
         self.root.clipboard_append(text)
 
         print(f"[CAL] Copied dataset for Probe {idx+1}")
+        
+    def copy_full_dataset(self):
+        data = self.calibration_data
+
+        if not any(data):
+            return
+
+        # Find longest probe dataset
+        max_len = max(len(probe) for probe in data)
+
+        lines = []
+
+        # Header row
+        lines.append("Blue\tBlack\tRed\tWhite")
+
+        # Build rows
+        for i in range(max_len):
+            row = []
+
+            for probe in data:
+                if i < len(probe):
+                    # probe entry = (expected, measured, raw)
+                    raw_value = probe[i][2]
+                    row.append(f"{raw_value}")
+                else:
+                    row.append("")
+
+            lines.append("\t".join(row))
+
+        text = "\n".join(lines)
+
+        self.root.clipboard_clear()
+        self.root.clipboard_append(text)
+
+        print("[CAL] Copied dataset for all probes")
 
 # ---------------------------
 # Run

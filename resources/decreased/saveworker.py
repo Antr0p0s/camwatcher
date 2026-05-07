@@ -11,7 +11,7 @@ load_dotenv()
 NO_CAM_SAVE_LOC = os.getenv("NO_CAM_SAVE_LOC")
 
 def save_buffer_worker(frames_buffer, timestamps_buffer, temperatures_buffer, 
-                       pressures_buffer, stop_event, updates, chunk_size, chunk_name):
+                       pressures_buffer, stop_event, updates, chunk_size, chunk_name, vms_buffer):
     chunk_counter = 1
     chunk_dir = f'{NO_CAM_SAVE_LOC}/{chunk_name}' if 'prct' not in chunk_name else f'{NO_CAM_SAVE_LOC}/chunks/{datetime.now().strftime('%m-%d-%H-%M')}'
 
@@ -26,11 +26,13 @@ def save_buffer_worker(frames_buffer, timestamps_buffer, temperatures_buffer,
             times_raw = timestamps_buffer.copy()
             temps_raw = temperatures_buffer.copy()
             press_raw = pressures_buffer.copy()
+            vms_raw = vms_buffer.copy()
 
             frames_buffer.clear()
             timestamps_buffer.clear()
             temperatures_buffer.clear()
             pressures_buffer.clear()
+            vms_buffer.clear()
             
             filename = f"{chunk_dir}/chunk_{chunk_counter}.npz"
             updates['saved']+= len(frames_raw)
@@ -43,10 +45,24 @@ def save_buffer_worker(frames_buffer, timestamps_buffer, temperatures_buffer,
                 frames=np.array(frames_raw, dtype=np.float16),
                 timestamps=np.array(times_raw, dtype=np.float16),
                 temperatures=np.array(temps_raw, dtype=np.float16),
-                pressures=np.array(press_raw, dtype=np.float16)
+                pressures=np.array(press_raw, dtype=np.float16),
+                vms=np.array(vms_raw, dtype=np.float16)
             )
         else:
             time.sleep(0.1)
 
-
+    filename = f"{chunk_dir}/chunk_{chunk_counter}.npz"
+    frames_raw = frames_buffer.copy()
+    times_raw = timestamps_buffer.copy()
+    temps_raw = temperatures_buffer.copy()
+    press_raw = pressures_buffer.copy()
+    vms_raw = vms_buffer.copy()
+    np.savez(
+        filename,
+        frames=np.array(frames_raw, dtype=np.float16),
+        timestamps=np.array(times_raw, dtype=np.float16),
+        temperatures=np.array(temps_raw, dtype=np.float16),
+        pressures=np.array(press_raw, dtype=np.float16),
+        vms=np.array(vms_raw, dtype=np.float16)
+    )
     print("[DISPATCHER] Stopped")

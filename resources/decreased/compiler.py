@@ -22,7 +22,8 @@ in_memory_store = {
     "frames": [],
     "timestamps": [],
     "temperatures": [],
-    "pressures": []
+    "pressures": [],
+    "vms": []
 }
 
 sequence_control = {
@@ -40,7 +41,8 @@ async def compile_video(data, output_path, fps=30):
     in_memory_store["timestamps"] = data['timestamps']
     in_memory_store["temperatures"] = data['temperatures']
     in_memory_store["pressures"] = data['pressures']
-
+    in_memory_store["vms"] = data['vms']
+    
     compilation_state["output_buffer"] = io.BytesIO()
     compilation_state["writer"] = imageio.get_writer(
         compilation_state["output_buffer"],
@@ -55,7 +57,7 @@ async def compile_video(data, output_path, fps=30):
 
         # If some frames were not yet rendered, process them now
         if processed < total_frames:
-            await process_frames_unsafe(compilation_state, in_memory_store, sequence_control, None)
+            await process_frames_unsafe(compilation_state, in_memory_store, sequence_control, in_memory_store['vms'])
 
         # Close the writer so the mp4 finalizes
         if compilation_state["writer"] is not None:

@@ -107,11 +107,12 @@ def toggle_recording(event):
         timestamps_buffer.clear()
         temperatures_buffer.clear()
         pressures_buffer.clear()
+        vms_buffer.clear()
         
         # 2. CREATE A NEW THREAD OBJECT
         chunk_thread = threading.Thread(
             target=save_buffer_worker,
-            args=(frames_buffer, timestamps_buffer, temperatures_buffer, pressures_buffer, chunk_event, updates, CHUNK_SIZE, ui.get_filename()),
+            args=(frames_buffer, timestamps_buffer, temperatures_buffer, pressures_buffer, chunk_event, updates, CHUNK_SIZE, ui.get_filename(), vms_buffer),
             daemon=True
         )
         # 3. Start it
@@ -130,6 +131,7 @@ timestamps_buffer = []
 temperatures_buffer = []
 pressures_buffer = []
 frames_buffer = []
+vms_buffer = []
 
 i = 0
 
@@ -162,6 +164,7 @@ try:
                     frames_buffer.append(frame_data)
                     timestamps_buffer.append(ts_data)
                     temperatures_buffer.append(current_temp_snapshot) 
+                    vms_buffer.append(ui.get_img_lims())
                     pressures_buffer.append(current_pressure_snapshot)
                 elif current_pressure_snapshot < 100 and AUTO_ENABLE_RECORDING:
                     toggle_recording(1)
@@ -212,5 +215,8 @@ finally:
     
     pressure_event.set()
     pressure_thread.join()
+    
+    chunk_event.set()
+    chunk_thread.join()
 
 

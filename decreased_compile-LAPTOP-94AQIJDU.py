@@ -39,6 +39,7 @@ def compile_data(base_path):
     temps = []
     pressures = []
     frames = []
+    vms = []
 
     print(f"[INFO] Found {len(files)} chunk files")
 
@@ -51,31 +52,29 @@ def compile_data(base_path):
                 new_temps = data["temperatures"]
                 new_pressures = data["pressures"]
                 new_frames = data["frames"]
+                new_vms = data['vms']
                 
-                if not (len(new_frames) == len(new_temps) == len(new_pressures) == len(new_frames)):
+                if not (len(new_frames) == len(new_temps) == len(new_pressures) == len(new_frames) == len(new_vms)):
                     print(f'[WARN] inconsistent lenghts for chunk {f}, skipping')
+                    print(f'{len(new_frames)} / {len(new_temps)} / {len(new_pressures)} / {len(new_frames)} / {len(new_vms)}')
                 else:
                     timestamps.extend(new_timestamps)
                     temps.extend(new_temps)
                     pressures.extend(new_pressures)
                     frames.extend(new_frames)
+                    vms.extend(new_vms)
                     
-                    
-
         except Exception as e:
             print(f"[WARN] Skipping {f}: {e}")
             
     # print(len(timestamps), len(temps), len(pressures), len(frames))
     print(f"[INFO] Total samples: {len(timestamps)}")
     
-    print('[CONVERTING] Converting timestamps')
     timestamps = np.array(timestamps)
-    print('[CONVERTING] Converting frames')
     frames = np.array(frames, dtype=object)
-    print('[CONVERTING] Converting pressures')
     pressures = np.array(pressures)
-    print('[CONVERTING] Converting temps')
     temps = np.array(temps)
+    vms = np.array(vms)
 
     # ---------------------------
     # Save combined datasets
@@ -149,7 +148,8 @@ def compile_data(base_path):
         "frames": frames,
         "timestamps": timestamps,
         "temperatures": temps,
-        "pressures": pressures
+        "pressures": pressures,
+        "vms": vms
     }
     output_path = f"./data/compiled/{input_folder}/video.mp4"
 
@@ -159,7 +159,7 @@ def compile_data(base_path):
 
 def main_menu():
     local_folder = './data/chunks'
-    cloud_folder = 'D:/Jelmer/Documents/University of Twente/OneDrive - University of Twente/stagemeasurements'
+    cloud_folder = 'C:/Users/jelme/OneDrive - University of Twente/stagemeasurements'
     local_chunks = os.listdir(local_folder)
     cloud_chunks = os.listdir(cloud_folder)
     
@@ -189,7 +189,7 @@ def main_menu():
         print("Invalid selection.")
 
 if __name__ == "__main__":
-    compile_data('D:/Jelmer/Documents/University of Twente/OneDrive - University of Twente/stagemeasurements/temp')
+    compile_data('./data/chunks/vms')
     # delete_folder('./data/chunks/devtime')
     # main_menu()
 

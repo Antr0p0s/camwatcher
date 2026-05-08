@@ -3,18 +3,15 @@ import time
 from collections import deque
 
 BOARD_NUM = 0
-OFFSETS = [0, -24.501, -42.082, -16.723] # blue, black, red, white
-COEFFICIENTS = [0, 2.108, 2.8839, 1.6371]
+OFFSETS = [-9.6277, -10.651, -10.083, -11.558] # blue, black, red, white
+COEFFICIENTS = [1.3034, 1.3386, 1.3089, 1.3588]
 PROBE_ORDER=[0, 1, 3, 2] 
 NUM_PROBES = 4
+MOV_AVG_LENGTH = 4
 
-
+# gewilde orde: black, white, blue, red (1, 3, 0, 2)
 def convert_temperature(measured_temp, probe_no):
-    probe = PROBE_ORDER[probe_no]
-    
-    if probe ==  0: # blue
-        return (0.00052213) * math.exp(0.52389 * measured_temp)
-    return COEFFICIENTS[probe] * measured_temp + OFFSETS[probe]
+    return COEFFICIENTS[probe_no] * measured_temp + OFFSETS[probe_no]
 
 class MCCBackend:
     def __init__(self):
@@ -88,12 +85,11 @@ def get_backend(USE_FAKE_TEMPS):
     if USE_FAKE_TEMPS:
         return FakeBackend()
     try:
-        # Try Windows first
         return MCCBackend()
     
     except NameError:
         raise RuntimeError(
-            "No DAQ backend available (mcculw or uldaq missing)"
+            "No DAQ backend available"
         )
 
 
@@ -106,7 +102,7 @@ def temperature_acquisition_thread(USE_FAKE_TEMPS, temperatures, stop_event):
     backend = get_backend(USE_FAKE_TEMPS)
     backend.connect(BOARD_NUM)
 
-    history = [deque(maxlen=5) for _ in range(NUM_PROBES)]
+    history = [deque(maxlen=MOV_AVG_LENGTH) for _ in range(NUM_PROBES)]
 
     try:
         while not stop_event.is_set():

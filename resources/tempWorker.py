@@ -5,7 +5,8 @@ from collections import deque
 BOARD_NUM = 0
 OFFSETS = [-9.6277, -10.651, -10.083, -11.558] # blue, black, red, white
 COEFFICIENTS = [1.3034, 1.3386, 1.3089, 1.3588]
-PROBE_ORDER=[0, 1, 3, 2] 
+PROBE_ORDER=[1, 3, 0, 2] 
+# blue = 0 - black = 1 - red = 2 - white = 3
 NUM_PROBES = 4
 MOV_AVG_LENGTH = 4
 

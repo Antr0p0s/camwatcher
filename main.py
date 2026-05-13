@@ -22,7 +22,7 @@ print(f'Running in {"DEV" if DEV_MODE else 'PROD'}')
 # ConfigurationS
 # ---------------------------
 VIDEO_FPS = 15 # FPS used in the final video
-MAX_BUFFER = 5 
+MAX_BUFFER = 50
 FPS_WINDOW = 20 #FPS for the window
 FORCE_BACKUP = True
 USE_FAKE_TEMPS = DEV_MODE
@@ -35,8 +35,8 @@ NUM_UPLOAD_WORKERS = 4
 # ---------------------------
 recording = False
 FRAME_TIME = 1.0 / FPS_WINDOW
-API_URL = 'http://127.0.0.1:8000/' if DEV_MODE else "https://stage.randomwebserver.eu"
-API_URL = "https://stage.randomwebserver.eu"
+API_URL = 'http://127.0.0.1:8000' if DEV_MODE else "https://stage.randomwebserver.eu"
+# API_URL = "https://stage.randomwebserver.eu"
 
 if not ping_api(API_URL):
     raise LookupError('Server not online')
@@ -129,6 +129,7 @@ frames_buffer = []
 timestamps_buffer = []
 temperatures_buffer = []
 pressures_buffer = []
+vms_buffer = []
 # ---------------------------
 # Button callbacks
 # ---------------------------
@@ -152,11 +153,12 @@ def toggle_recording(event):
         frames_buffer.clear()
         timestamps_buffer.clear()
         temperatures_buffer.clear()
+        vms_buffer.clear()
         
         # 2. CREATE A NEW THREAD OBJECT
         chunk_thread = threading.Thread(
             target=save_buffer_worker,
-            args=(frames_buffer, timestamps_buffer, temperatures_buffer, pressures_buffer, chunk_event, MAX_BUFFER, API_URL, ui, recording, upload_workers_status),
+            args=(frames_buffer, timestamps_buffer, temperatures_buffer, pressures_buffer, chunk_event, MAX_BUFFER, API_URL, ui, recording, upload_workers_status, vms_buffer),
             daemon=True
         )
         # 3. Start it
@@ -204,6 +206,7 @@ try:
                     # FIX: Use append() so it's one list entry per frame
                     temperatures_buffer.append(current_temp_snapshot) 
                     pressures_buffer.append(current_pressure_snapshot)
+                    vms_buffer.append(ui.get_img_lims())
                     # temp for easy testing
                 elif current_pressure_snapshot < 100 and AUTO_ENABLE_RECORDING:
                     toggle_recording(1)

@@ -78,7 +78,7 @@ def temp_has_files(temp_dir="./temp"):
 
 def save_buffer_worker(frames_buffer, timestamps_buffer, temperatures_buffer, pressures_buffer,
                        stop_event, max_buffer, api_url, ui, recording,
-                       upload_workers_status):
+                       upload_workers_status, vms_buffer):
 
     global chunk_counter, latest_data
 
@@ -92,32 +92,38 @@ def save_buffer_worker(frames_buffer, timestamps_buffer, temperatures_buffer, pr
             oldest = get_oldest_chunk_file()
             if oldest is not None:
                 try:
+                    idx = int(
+                        os.path.basename(oldest)
+                        .split("_")[1]
+                        .split(".")[0]
+                    )
                     upload_queue.put((api_url, idx, oldest), timeout=0.1)
                 except queue.Full:
                     pass
                 continue
         # 🔥 2. Process RAM buffer
         if len(frames_buffer) >= max_buffer or (stop_event.is_set() and len(frames_buffer) > 0 or temp_has_files()):
-
             frames_raw = frames_buffer.copy()
             times_raw = timestamps_buffer.copy()
             temps_raw = temperatures_buffer.copy()
             press_raw = pressures_buffer.copy()
+            vms_raw = vms_buffer.copy()
 
             frames_buffer.clear()
             timestamps_buffer.clear()
             temperatures_buffer.clear()
             pressures_buffer.clear()
+            vms_buffer.clear()
 
             latest_data['total_frames'] += len(frames_raw)
 
             if recording:
                 for i in range(0, len(frames_raw), max_buffer):
-
                     chunk_frames = frames_raw[i:i+max_buffer]
                     chunk_times = times_raw[i:i+max_buffer]
                     chunk_temps = temps_raw[i:i+max_buffer]
                     chunk_press = press_raw[i:i+max_buffer]
+                    chunk_vms = vms_raw[i:i+max_buffer]
 
                     chunk_idx = chunk_counter
                     chunk_counter += 1
@@ -131,6 +137,7 @@ def save_buffer_worker(frames_buffer, timestamps_buffer, temperatures_buffer, pr
                             chunk_times,
                             chunk_temps,
                             chunk_press,
+                            chunk_vms,
                             ui.get_img_lims()
                         ))
 
@@ -144,6 +151,7 @@ def save_buffer_worker(frames_buffer, timestamps_buffer, temperatures_buffer, pr
                             timestamps=np.array(chunk_times, dtype=np.float16),
                             temperatures=np.array(chunk_temps, dtype=np.float16),
                             pressures=np.array(chunk_press, dtype=np.float16),
+                            vms=np.array(chunk_vms, dtype=np.float16),
                             img_min=np.array([ui.get_img_lims()[0]]),
                             img_max=np.array([ui.get_img_lims()[1]])
                         )
@@ -182,7 +190,7 @@ def upload_worker(worker, upload_workers_status, updates):
 
         else:
             # 🚀 RAM mode
-            api_url, chunk_idx, frames, timestamps, temps, pressures, img_lims = item
+            api_url, chunk_idx, frames, timestamps, temps, pressures, vms, img_lims = item
 
             buffer = io.BytesIO()
             frames_data = np.array(frames, dtype=np.float16)
@@ -192,6 +200,7 @@ def upload_worker(worker, upload_workers_status, updates):
                     timestamps=np.array(timestamps, dtype=np.float16),
                     temperatures=np.array(temps, dtype=np.float16),
                     pressures=np.array(pressures, dtype=np.float16),
+                    vms=np.array(vms, dtype=np.float16),
                     img_min=np.array([img_lims[0]]),
                     img_max=np.array([img_lims[1]]))
 

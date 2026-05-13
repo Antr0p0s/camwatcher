@@ -32,10 +32,14 @@ timestamps_buffer = []
 # ---------------------------
 # Temp conversion
 # ---------------------------
-OFFSETS = [0.598540, 0.261689, 0.0, 0.101573, 0.0]
+OFFSETS = [-9.6277, -10.651, -10.083, -11.558] # blue, black, red, white
+COEFFICIENTS = [1.3034, 1.3386, 1.3089, 1.3588]
+PROBE_ORDER=[3, 2, 1, 0] 
+# blue = 0 - black = 1 - red = 2 - white = 3
 
+# gewilde orde: black, white, blue, red (1, 3, 0, 2)
 def convert_temperature(measured_temp, probe_no):
-    return 1.293 * measured_temp - 9.828 + OFFSETS[probe_no]
+    return COEFFICIENTS[probe_no] * measured_temp + OFFSETS[probe_no]
 
 # ---------------------------
 # UI App

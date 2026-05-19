@@ -6,6 +6,13 @@ BOARD_NUM = 0
 OFFSETS = [13.704, -2.8299, 27.852, -13.837] # blue, black, red, white
 FIRST_COEFFICIENTS = [0.1612, 0.1097, 0.2452, 0.0076]
 SECOND_COEFFICIENTS = [-3.0011, -1.1087, -5.1248, 1.3971]
+
+# first, second, offset
+FITS = [[0.125509,	-1.891261,	5.205203], # blue
+[0.067673,	0.219476,	-16.208077], # black
+[0.226843,	-4.587383,	23.984397], # red
+[0.009988,	1.299066,	-12.197174]] # white
+
 PROBE_ORDER=[3, 2, 1, 0] 
 # blue = 0 - black = 1 - red = 2 - white = 3
 NUM_PROBES = 4
@@ -13,7 +20,8 @@ MOV_AVG_LENGTH = 4
 
 # gewilde orde: black, white, blue, red (1, 3, 0, 2)
 def convert_temperature(measured_temp, probe_no):
-    return FIRST_COEFFICIENTS[probe_no] * measured_temp * measured_temp + SECOND_COEFFICIENTS[probe_no] * measured_temp + OFFSETS[probe_no]
+    return FITS[probe_no][0] * measured_temp * measured_temp + FITS[probe_no][1] * measured_temp + FITS[probe_no][2]
+    # return FIRST_COEFFICIENTS[probe_no] * measured_temp * measured_temp + SECOND_COEFFICIENTS[probe_no] * measured_temp + OFFSETS[probe_no]
 
 class MCCBackend:
     def __init__(self):

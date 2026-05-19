@@ -149,6 +149,7 @@ async def process_frames_unsafe(compilation_state, in_memory_store, sequence_con
     timestamps = np.array(in_memory_store["timestamps"][:total_frames])
     temps = np.array(in_memory_store["temperatures"][:total_frames])
     pressures = np.array(in_memory_store["pressures"][:total_frames])
+    vms = np.array(in_memory_store["vms"][:total_frames])
 
     pixel_totals = np.array([
         np.sum(f[1])  # usually you want y-values
@@ -158,32 +159,21 @@ async def process_frames_unsafe(compilation_state, in_memory_store, sequence_con
     raw_diffs = np.diff(pixel_totals, prepend=pixel_totals[0]) * 30
     derivative = np.convolve(raw_diffs, np.ones(24)/24, mode="same")
 
-    print(f'imglims: {img_lims}')
-
-    if img_lims:
-        vmn, vmx = img_lims
-    else:
-        vmn, vmx = np.percentile(
-            np.concatenate([f[1] for f in frames[:10]]),
-            [1, 99]
-        )
-
-    denom = float(vmx - vmn) if vmx > vmn else 1.0
-
     num_workers = min(32, os.cpu_count() or 8)
     loop = asyncio.get_event_loop()
-
-    total_frames = 40
     
     with concurrent.futures.ProcessPoolExecutor(max_workers=num_workers) as executor:
         futures = []
 
         for i in range(start_idx, total_frames):
             frame = frames[i]
+            
+            vmn, vmx = vms[i]
+            denom = float(vmx - vmn) if vmx > vmn else 1.0
 
             img_norm = np.clip((frame.astype(np.float16) - vmn) / denom, 0, 1)
             img_norm = np.clip(img_norm * 0.5, 0, 1)
-            bubbles = count_bubbles(frame, vmn, vmx)
+            bubbles = None
 
             if i % 20 == 0:
                 print(f'[UPDATE] Currently at frame {i} out of {total_frames} frames')

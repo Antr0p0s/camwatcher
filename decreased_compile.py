@@ -39,6 +39,7 @@ def compile_data(base_path):
     temps = []
     pressures = []
     frames = []
+    vms = []
 
     print(f"[INFO] Found {len(files)} chunk files")
 
@@ -51,6 +52,7 @@ def compile_data(base_path):
                 new_temps = data["temperatures"]
                 new_pressures = data["pressures"]
                 new_frames = data["frames"]
+                new_vms = data['vms']
                 
                 if not (len(new_frames) == len(new_temps) == len(new_pressures) == len(new_frames)):
                     print(f'[WARN] inconsistent lenghts for chunk {f}, skipping')
@@ -59,6 +61,7 @@ def compile_data(base_path):
                     temps.extend(new_temps)
                     pressures.extend(new_pressures)
                     frames.extend(new_frames)
+                    vms.extend(new_vms)
                     
                     
 
@@ -76,6 +79,8 @@ def compile_data(base_path):
     pressures = np.array(pressures)
     print('[CONVERTING] Converting temps')
     temps = np.array(temps)
+    print('[CONVERTING] Converting vms')
+    vms = np.array(vms)
 
     # ---------------------------
     # Save combined datasets
@@ -149,17 +154,18 @@ def compile_data(base_path):
         "frames": frames,
         "timestamps": timestamps,
         "temperatures": temps,
-        "pressures": pressures
+        "pressures": pressures,
+        "vms": vms
     }
     output_path = f"./data/compiled/{input_folder}/video.mp4"
 
     asyncio.run(compile_video(data, output_path))
 
-    # delete_folder(base_path)
+    delete_folder(base_path)
 
 def main_menu():
     local_folder = './data/chunks'
-    cloud_folder = 'D:/Jelmer/Documents/University of Twente/OneDrive - University of Twente/stagemeasurements'
+    cloud_folder = 'C:/Users/jelme/OneDrive - University of Twente/stagemeasurements/chunks'
     local_chunks = os.listdir(local_folder)
     cloud_chunks = os.listdir(cloud_folder)
     
@@ -189,7 +195,7 @@ def main_menu():
         print("Invalid selection.")
 
 if __name__ == "__main__":
-    compile_data('D:/Jelmer/Documents/University of Twente/OneDrive - University of Twente/stagemeasurements/temp')
+    # compile_data('D:/Jelmer/Documents/University of Twente/OneDrive - University of Twente/stagemeasurements/temp')
     # delete_folder('./data/chunks/devtime')
-    # main_menu()
+    main_menu()
 

@@ -4,7 +4,7 @@ import math
 from collections import deque
 import tkinter as tk
 from mcculw import ul
-from mcculw.enums import InterfaceType, TempScale
+from mcculw.enums import InterfaceType, TempScale, TcType, InfoType, BoardInfo
 from mcculw.ul import ULError
 import os
 import numpy as np
@@ -16,7 +16,7 @@ import sys
 # ---------------------------
 # Config
 # ---------------------------
-USE_FAKE_TEMPS = True
+USE_FAKE_TEMPS = False
 PROBE_PORTS = [0, 1, 2, 3]
 NUM_PROBES = len(PROBE_PORTS)
 
@@ -36,9 +36,9 @@ OFFSETS = [13.704, -2.8299, 27.852, -13.837] # blue, black, red, white
 FIRST_COEFFICIENTS = [0.1612, 0.1097, 0.2452, 0.0076]
 SECOND_COEFFICIENTS = [-3.0011, -1.1087, -5.1248, 1.3971]
 
-# gewilde orde: black, white, blue, red (1, 3, 0, 2)
 def convert_temperature(measured_temp, probe_no):
-    return FIRST_COEFFICIENTS[probe_no] * measured_temp^2 + SECOND_COEFFICIENTS[probe_no] * measured_temp + OFFSETS[probe_no]
+    return measured_temp
+    # return FIRST_COEFFICIENTS[probe_no] * measured_temp * measured_temp + SECOND_COEFFICIENTS[probe_no] * measured_temp + OFFSETS[probe_no]
 
 # ---------------------------
 # UI Appgf
@@ -84,6 +84,15 @@ class TempMonitorApp:
                 return
             self.ul = ul
             self.ul.create_daq_device(self.board_num, devices[0])
+
+            for ch in range(NUM_PROBES):
+                ul.set_config(
+                    InfoType.BOARDINFO,
+                    self.board_num,
+                    ch,
+                    BoardInfo.CHANTCTYPE,
+                    TcType.J
+                )
             
             self.device_connected = True
             self.status.config(text=f"Connected: {devices[0].product_name}", fg="#2ecc71")
@@ -299,6 +308,7 @@ class TempMonitorApp:
             time.sleep(0.2)
 
     def on_close(self):
+        self.ul.release_daq_device(self.board_num)
         global running
         running = False
         self.root.destroy()

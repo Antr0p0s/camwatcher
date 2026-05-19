@@ -166,7 +166,7 @@ try:
                     temperatures_buffer.append(current_temp_snapshot) 
                     vms_buffer.append(ui.get_img_lims())
                     pressures_buffer.append(current_pressure_snapshot)
-                elif current_pressure_snapshot < 100 and AUTO_ENABLE_RECORDING:
+                elif current_pressure_snapshot < 200 and AUTO_ENABLE_RECORDING:
                     toggle_recording(1)
                                 
                 got_frame = True

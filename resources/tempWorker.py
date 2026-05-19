@@ -13,7 +13,7 @@ MOV_AVG_LENGTH = 4
 
 # gewilde orde: black, white, blue, red (1, 3, 0, 2)
 def convert_temperature(measured_temp, probe_no):
-    return FIRST_COEFFICIENTS[probe_no] * measured_temp^2 + SECOND_COEFFICIENTS[probe_no] * measured_temp + OFFSETS[probe_no]
+    return FIRST_COEFFICIENTS[probe_no] * measured_temp * measured_temp + SECOND_COEFFICIENTS[probe_no] * measured_temp + OFFSETS[probe_no]
 
 class MCCBackend:
     def __init__(self):
@@ -38,8 +38,6 @@ class MCCBackend:
 
         try:
             self.ul.create_daq_device(board_num, self.device)
-            for i in range(0, NUM_PROBES):
-                self.ul.tc_type_write(board_num, i, self.TcType.K)
         except self.ULError:
             self.ul.release_daq_device(board_num)
             self.ul.create_daq_device(board_num, self.device)

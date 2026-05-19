@@ -3,8 +3,9 @@ import time
 from collections import deque
 
 BOARD_NUM = 0
-OFFSETS = [-9.6277, -10.651, -10.083, -11.558] # blue, black, red, white
-COEFFICIENTS = [1.3034, 1.3386, 1.3089, 1.3588]
+OFFSETS = [13.704, -2.8299, 27.852, -13.837] # blue, black, red, white
+FIRST_COEFFICIENTS = [0.1612, 0.1097, 0.2452, 0.0076]
+SECOND_COEFFICIENTS = [-3.0011, -1.1087, -5.1248, 1.3971]
 PROBE_ORDER=[3, 2, 1, 0] 
 # blue = 0 - black = 1 - red = 2 - white = 3
 NUM_PROBES = 4
@@ -12,18 +13,19 @@ MOV_AVG_LENGTH = 4
 
 # gewilde orde: black, white, blue, red (1, 3, 0, 2)
 def convert_temperature(measured_temp, probe_no):
-    return COEFFICIENTS[probe_no] * measured_temp + OFFSETS[probe_no]
+    return FIRST_COEFFICIENTS[probe_no] * measured_temp^2 + SECOND_COEFFICIENTS[probe_no] * measured_temp + OFFSETS[probe_no]
 
 class MCCBackend:
     def __init__(self):
         from mcculw import ul
-        from mcculw.enums import InterfaceType, TempScale
+        from mcculw.enums import InterfaceType, TempScale, TcType
         from mcculw.ul import ULError
 
         self.ul = ul
         self.InterfaceType = InterfaceType
         self.TempScale = TempScale
         self.ULError = ULError
+        self.TcType = TcType
 
         self.device = None
 
@@ -36,6 +38,8 @@ class MCCBackend:
 
         try:
             self.ul.create_daq_device(board_num, self.device)
+            for i in range(0, NUM_PROBES):
+                self.ul.tc_type_write(board_num, i, self.TcType.K)
         except self.ULError:
             self.ul.release_daq_device(board_num)
             self.ul.create_daq_device(board_num, self.device)

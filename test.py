@@ -1,193 +1,88 @@
-import cv2
 import numpy as np
+import matplotlib.pyplot as plt
 
-video_path = "D:/Jelmer/Documents/OneDrive/Stage UT/camwatcher/data/compiled/thermocouple_3/2-75.mp4"
-cap = cv2.VideoCapture(video_path)
+OFFSETS = [13.704, -2.8299, 27.852, -13.837] # blue, black, red, white
+FIRST_COEFFICIENTS = [0.1612, 0.1097, 0.2452, 0.0076]
+SECOND_COEFFICIENTS = [-3.0011, -1.1087, -5.1248, 1.3971]
 
-# ----------------------------
-# WINDOWS
-# ----------------------------
-cv2.namedWindow("Controls", cv2.WINDOW_NORMAL)
+# first, second, offset
+FITS = [[0.125509,	-1.891261,	5.205203], # blue
+[0.067673,	0.219476,	-16.208077], # black
+[0.226843,	-4.587383,	23.984397], # red
+[0.009988,	1.299066,	-12.197174]] # white
 
-dummy = np.zeros((100, 400), dtype=np.uint8)
-cv2.imshow("Controls", dummy)
-cv2.waitKey(1)
+paths = [
+    "C:/Users/jelme/OneDrive/Stage UT/camwatcher/data/compiled/05-19-09-06 - procent 0-1",
+    "C:/Users/jelme/OneDrive/Stage UT/camwatcher/data/compiled/05-19-09-13 - procent 0-2",
+    "C:/Users/jelme/OneDrive/Stage UT/camwatcher/data/compiled/05-19-09-20 - procent 0-3",
+    "C:/Users/jelme/OneDrive/Stage UT/camwatcher/data/compiled/05-19-09-24 - procent 0-4",
+    "C:/Users/jelme/OneDrive/Stage UT/camwatcher/data/compiled/05-19-09-27 - procent 0-5",
+    "C:/Users/jelme/OneDrive/Stage UT/camwatcher/data/compiled/05-19-10-54 - procent 0-6",
+    "C:/Users/jelme/OneDrive/Stage UT/camwatcher/data/compiled/05-19-10-59 - procent 0-7",
+    "C:/Users/jelme/OneDrive/Stage UT/camwatcher/data/compiled/05-19-11-05 - procent 0-8",
+    "C:/Users/jelme/OneDrive/Stage UT/camwatcher/data/compiled/05-19-11-11 - procent 0-9"
+]
 
-# ----------------------------
-# TRACKBARS
-# ----------------------------
-cv2.createTrackbar("CLAHE", "Controls", 20, 50, lambda x: None)
-cv2.createTrackbar("Brightness", "Controls", 50, 100, lambda x: None)
-cv2.createTrackbar("BlockSize", "Controls", 11, 50, lambda x: None)
-cv2.createTrackbar("C", "Controls", 50, 100, lambda x: None)
+fig, axes = plt.subplots(5, 1, figsize=(12, 18))
 
-# ----------------------------
-# PREPROCESS FUNCTION
-# ----------------------------
-def preprocess(frame, clahe_val, brightness, block_size, c_val):
+for i in range(5):
+    path = f"{paths[i]}/temperature.npz"
 
-    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    data = np.load(path)
 
-    # CLAHE contrast enhancement
-    clip = max(1, clahe_val / 10.0)
-    clahe = cv2.createCLAHE(clipLimit=clip, tileGridSize=(8, 8))
-    enhanced = clahe.apply(gray)
+    timestamps = data['timestamps']
+    temperatures = data['temperatures']
 
-    # brightness
-    beta = brightness - 50
-    enhanced = cv2.convertScaleAbs(enhanced, alpha=1.0, beta=beta)
-
-    # adaptive threshold settings
-    block_size = max(3, block_size)
-    if block_size % 2 == 0:
-        block_size += 1
-
-    thresh = cv2.adaptiveThreshold(
-        enhanced,
-        255,
-        cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
-        cv2.THRESH_BINARY_INV,
-        block_size,
-        c_val
+    first_temps_average = (
+        sum(temperatures[0]) / len(temperatures[0])
     )
 
-    # cleanup noise
-    kernel = np.ones((2, 2), np.uint8)
-    cleaned = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernel)
+    offsets = temperatures[0] - first_temps_average
 
-    return cleaned
+    new_temps = []
 
+    for temps in temperatures:
+        new_temps_snapshot = []
 
-# ----------------------------
-# LOAD FIRST FRAME
-# ----------------------------
-ret, frame = cap.read()
-if not ret:
-    print("Could not load video")
-    exit()
+        for d in range(4):
+            new_temps_snapshot.append(
+                temps[d] - offsets[d]
+            )
 
-cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
+        new_temps.append(new_temps_snapshot)
 
-print("Press 's' to start processing, 'q' to quit")
+    new_temps = np.array(new_temps)
 
-# ----------------------------
-# TUNING LOOP
-# ----------------------------
-while True:
+    ax = axes[i]
 
-    clahe_val = cv2.getTrackbarPos("CLAHE", "Controls")
-    brightness = cv2.getTrackbarPos("Brightness", "Controls")
-    block_size = cv2.getTrackbarPos("BlockSize", "Controls")
-    c_raw = cv2.getTrackbarPos("C", "Controls")
-    c_val = (c_raw / 100.0) * 1.0
+    if new_temps.ndim == 2:
+        for j in range(new_temps.shape[1]):
+            ax.plot(
+                timestamps,
+                new_temps[:, j],
+                label=f"T{j+1}"
+            )
+            ax.fill_between(
+                timestamps,
+                new_temps[:, j] - offsets[j],
+                new_temps[:, j] + offsets[j],
+                alpha=0.2
+            )
 
-    processed = preprocess(frame, clahe_val, brightness, block_size, c_val)
+        ax.legend()
 
-    # original frame
-    orig_vis = cv2.resize(frame, (320, 240))
+    else:
+        ax.plot(timestamps, new_temps)
 
-    # preprocessing steps split for debugging
-    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    ax.set_xlabel("Time (s)")
+    ax.set_ylabel("Temperature")
+    ax.set_title(f"Temperature vs Time #{i+1}")
+    ax.grid()
 
-    clahe_val = cv2.getTrackbarPos("CLAHE", "Controls")
-    brightness = cv2.getTrackbarPos("Brightness", "Controls")
-    block_size = cv2.getTrackbarPos("BlockSize", "Controls")
-    c_val = cv2.getTrackbarPos("C", "Controls")
-    c_offset = (c_raw / 100.0) * 10.0
+plt.tight_layout()
 
-    # CLAHE
-    clip = max(1, clahe_val / 10.0)
-    clahe = cv2.createCLAHE(clipLimit=clip, tileGridSize=(8, 8))
-    enhanced = clahe.apply(gray)
-
-    # brightness
-    beta = brightness - 50
-    enhanced = cv2.convertScaleAbs(enhanced, alpha=1.0, beta=beta)
-
-    # adaptive threshold safety fix
-    block_size = max(3, block_size)
-    if block_size % 2 == 0:
-        block_size += 1
-
-    thresh = cv2.adaptiveThreshold(
-        enhanced,
-        255,
-        cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
-        cv2.THRESH_BINARY_INV,
-        block_size,
-        c_offset
-    )
-
-    # IMPORTANT: show enhanced grayscale (not just binary)
-    enhanced_vis = cv2.resize(enhanced, (320, 240))
-    enhanced_vis = cv2.cvtColor(enhanced_vis, cv2.COLOR_GRAY2BGR)
-
-    # threshold view
-    thresh_vis = cv2.resize(thresh, (320, 240))
-    thresh_vis = cv2.cvtColor(thresh_vis, cv2.COLOR_GRAY2BGR)
-
-    # combine 3 views
-    combined = np.hstack((orig_vis, enhanced_vis, thresh_vis))
-
-    cv2.imshow("Original | Enhanced | Threshold", combined)
-
-    key = cv2.waitKey(30) & 0xFF
-
-    if key == ord('q'):
-        cap.release()
-        cv2.destroyAllWindows()
-        exit()
-
-    if key == ord('s'):
-        break
-
-
-# ----------------------------
-# PROCESS FULL VIDEO
-# ----------------------------
-cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
-
-frame_idx = 0
-results = []
-
-while True:
-
-    ret, frame = cap.read()
-    if not ret:
-        break
-
-    clahe_val = cv2.getTrackbarPos("CLAHE", "Controls")
-    brightness = cv2.getTrackbarPos("Brightness", "Controls")
-    block_size = cv2.getTrackbarPos("BlockSize", "Controls")
-    c_val = cv2.getTrackbarPos("C", "Controls")
-
-    processed = preprocess(frame, clahe_val, brightness, block_size, c_val)
-
-    # display both views during processing
-    orig_vis = cv2.resize(frame, (320, 240))
-    proc_vis = cv2.cvtColor(cv2.resize(processed, (320, 240)), cv2.COLOR_GRAY2BGR)
-    combined = np.hstack((orig_vis, proc_vis))
-
-    cv2.imshow("Preview (Original | Processed)", combined)
-
-    results.append((frame_idx, None))
-
-    print(f"Frame {frame_idx}")
-
-    frame_idx += 1
-
-    if cv2.waitKey(1) & 0xFF == ord('q'):
-        break
-
-cap.release()
-cv2.destroyAllWindows()
-
-# ----------------------------
-# SAVE OUTPUT
-# ----------------------------
-with open("output.csv", "w") as f:
-    f.write("frame,temperature\n")
-    for r in results:
-        f.write(f"{r[0]},\n")
-
-print("Done. Saved to output.csv")
+plt.savefig("C:/Users/jelme/OneDrive/Stage UT/camwatcher/data/compiled/combined_temperature_plots.png")
+plt.close()
+            
+            
+            

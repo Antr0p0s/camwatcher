@@ -3,9 +3,10 @@ import time
 from collections import deque
 
 BOARD_NUM = 0
-OFFSETS = [13.704, -2.8299, 27.852, -13.837] # blue, black, red, white
 FIRST_COEFFICIENTS = [0.1612, 0.1097, 0.2452, 0.0076]
 SECOND_COEFFICIENTS = [-3.0011, -1.1087, -5.1248, 1.3971]
+OFFSETS = [13.704, -2.8299, 27.852, -13.837] # blue, black, red, white
+
 
 # first, second, offset
 FITS = [[0.125509,	-1.891261,	5.205203], # blue
@@ -118,6 +119,7 @@ def temperature_acquisition_thread(USE_FAKE_TEMPS, temperatures, stop_event):
     try:
         while not stop_event.is_set():
             current_temps = [0] * NUM_PROBES
+            raw_temps = [0] * NUM_PROBES
 
             for i in range(NUM_PROBES):
                 try:
@@ -128,11 +130,13 @@ def temperature_acquisition_thread(USE_FAKE_TEMPS, temperatures, stop_event):
                     avg_temp = sum(history[probe_num]) / len(history[probe_num])
 
                     current_temps[probe_num] = convert_temperature(avg_temp, probe_num)
+                    raw_temps[probe_num] = raw_temp
                 except Exception as e:
                     print(f"[TEMP] Runtime error: {e}")
                     temperatures["current_temps"] = [-1000] * NUM_PROBES
 
             temperatures["current_temps"] = current_temps
+            temperatures["raw_temps"] = raw_temps
             time.sleep(1 / 14)
 
     except Exception as e:

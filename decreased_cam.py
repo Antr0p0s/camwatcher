@@ -28,7 +28,7 @@ FPS_WINDOW = 20
 CHUNK_SIZE = 100
 
 # dicts for global variables
-temperatures = {"current_temps" : [0,0,0,0]}
+temperatures = {"current_temps" : [0,0,0,0], "raw_temps": [0,0,0,0]}
 pressure = {"current_pressure" : 0, 'current_status': 0}
 updates = {
     "total": 0,
@@ -106,13 +106,14 @@ def toggle_recording(event):
         frames_buffer.clear()
         timestamps_buffer.clear()
         temperatures_buffer.clear()
+        raw_temperatures_buffer.clear()
         pressures_buffer.clear()
         vms_buffer.clear()
         
         # 2. CREATE A NEW THREAD OBJECT
         chunk_thread = threading.Thread(
             target=save_buffer_worker,
-            args=(frames_buffer, timestamps_buffer, temperatures_buffer, pressures_buffer, chunk_event, updates, CHUNK_SIZE, ui.get_filename(), vms_buffer),
+            args=(frames_buffer, timestamps_buffer, temperatures_buffer, raw_temperatures_buffer, pressures_buffer, chunk_event, updates, CHUNK_SIZE, ui.get_filename(), vms_buffer),
             daemon=True
         )
         # 3. Start it
@@ -129,6 +130,7 @@ acq_thread.start()
 
 timestamps_buffer = []
 temperatures_buffer = []
+raw_temperatures_buffer = []
 pressures_buffer = []
 frames_buffer = []
 vms_buffer = []
@@ -154,6 +156,7 @@ try:
                 
                 # 2. Get the *current* temperature snapshot for this specific frame
                 current_temp_snapshot = list(temperatures['current_temps']) # copy the list
+                raw_current_temp_snapshot = list(temperatures['raw_temps']) # copy the list
                 current_pressure_snapshot = pressure["current_pressure"]
                 
                 got_frames.append(frame_data)
@@ -164,6 +167,7 @@ try:
                     frames_buffer.append(frame_data)
                     timestamps_buffer.append(ts_data)
                     temperatures_buffer.append(current_temp_snapshot) 
+                    raw_temperatures_buffer.append(raw_current_temp_snapshot)
                     vms_buffer.append(ui.get_img_lims())
                     pressures_buffer.append(current_pressure_snapshot)
                 elif current_pressure_snapshot < 200 and AUTO_ENABLE_RECORDING:

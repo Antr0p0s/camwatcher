@@ -46,7 +46,7 @@ cleanup_server(API_URL)
 # load the camera
 camera = PixelFlyCamera(frame_time=FRAME_TIME, exposure_time=0.1)
 # dicts for global variables
-temperatures = {"current_temps" : [0,0,0,0,0]}
+temperatures = {"current_temps" : [0,0,0,0], "raw_temps": [0,0,0,0]}
 pressure = {"current_pressure" : 0, 'current_status': 0}
 
 # dict to get the latest updates
@@ -128,6 +128,7 @@ ui = LiveUI(cropped_init_frame, img_lims)
 frames_buffer = []
 timestamps_buffer = []
 temperatures_buffer = []
+raw_temperatures_buffer = []
 pressures_buffer = []
 vms_buffer = []
 # ---------------------------
@@ -153,12 +154,13 @@ def toggle_recording(event):
         frames_buffer.clear()
         timestamps_buffer.clear()
         temperatures_buffer.clear()
+        raw_temperatures_buffer.clear()
         vms_buffer.clear()
         
         # 2. CREATE A NEW THREAD OBJECT
         chunk_thread = threading.Thread(
             target=save_buffer_worker,
-            args=(frames_buffer, timestamps_buffer, temperatures_buffer, pressures_buffer, chunk_event, MAX_BUFFER, API_URL, ui, recording, upload_workers_status, vms_buffer),
+            args=(frames_buffer, timestamps_buffer, temperatures_buffer, raw_temperatures_buffer, pressures_buffer, chunk_event, MAX_BUFFER, API_URL, ui, recording, upload_workers_status, vms_buffer),
             daemon=True
         )
         # 3. Start it
@@ -194,6 +196,7 @@ try:
                 
                 # 2. Get the *current* temperature snapshot for this specific frame
                 current_temp_snapshot = list(temperatures['current_temps']) # copy the list
+                raw_current_temp_snapshot = list(temperatures['raw_temps']) # copy the list
                 current_pressure_snapshot = pressure["current_pressure"]
                 
                 got_frames.append(frame_data)
@@ -205,6 +208,7 @@ try:
                     timestamps_buffer.append(ts_data)
                     # FIX: Use append() so it's one list entry per frame
                     temperatures_buffer.append(current_temp_snapshot) 
+                    raw_temperatures_buffer.append(raw_current_temp_snapshot)
                     pressures_buffer.append(current_pressure_snapshot)
                     vms_buffer.append(ui.get_img_lims())
                     # temp for easy testing

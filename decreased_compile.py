@@ -166,6 +166,7 @@ def compile_data(base_path):
 def main_menu():
     local_folder = './data/chunks'
     cloud_folder = 'C:/Users/jelme/OneDrive - University of Twente/stagemeasurements/chunks'
+    # cloud_folder = 'D:/Jelmer/Documents/University of Twente/OneDrive - University of Twente/stagemeasurements/chunks'
     local_chunks = os.listdir(local_folder)
     cloud_chunks = os.listdir(cloud_folder)
     

@@ -76,7 +76,7 @@ def temp_has_files(temp_dir="./temp"):
         for f in os.listdir(temp_dir)
     )
 
-def save_buffer_worker(frames_buffer, timestamps_buffer, temperatures_buffer, pressures_buffer,
+def save_buffer_worker(frames_buffer, timestamps_buffer, temperatures_buffer, raw_temperatures_buffer, pressures_buffer,
                        stop_event, max_buffer, api_url, ui, recording,
                        upload_workers_status, vms_buffer):
 
@@ -106,12 +106,14 @@ def save_buffer_worker(frames_buffer, timestamps_buffer, temperatures_buffer, pr
             frames_raw = frames_buffer.copy()
             times_raw = timestamps_buffer.copy()
             temps_raw = temperatures_buffer.copy()
+            raw_temps_raw = raw_temperatures_buffer.copy()
             press_raw = pressures_buffer.copy()
             vms_raw = vms_buffer.copy()
 
             frames_buffer.clear()
             timestamps_buffer.clear()
             temperatures_buffer.clear()
+            raw_temperatures_buffer.clear()
             pressures_buffer.clear()
             vms_buffer.clear()
 
@@ -122,6 +124,7 @@ def save_buffer_worker(frames_buffer, timestamps_buffer, temperatures_buffer, pr
                     chunk_frames = frames_raw[i:i+max_buffer]
                     chunk_times = times_raw[i:i+max_buffer]
                     chunk_temps = temps_raw[i:i+max_buffer]
+                    chunk_raw_temps = raw_temps_raw[i:i+max_buffer]
                     chunk_press = press_raw[i:i+max_buffer]
                     chunk_vms = vms_raw[i:i+max_buffer]
 
@@ -136,6 +139,7 @@ def save_buffer_worker(frames_buffer, timestamps_buffer, temperatures_buffer, pr
                             chunk_frames,
                             chunk_times,
                             chunk_temps,
+                            chunk_raw_temps,
                             chunk_press,
                             chunk_vms,
                             ui.get_img_lims()
@@ -150,6 +154,7 @@ def save_buffer_worker(frames_buffer, timestamps_buffer, temperatures_buffer, pr
                             frames=np.array(chunk_frames, dtype=np.float16),
                             timestamps=np.array(chunk_times, dtype=np.float16),
                             temperatures=np.array(chunk_temps, dtype=np.float16),
+                            raw_temperatures=np.array(chunk_raw_temps, dtype=np.float16),
                             pressures=np.array(chunk_press, dtype=np.float16),
                             vms=np.array(chunk_vms, dtype=np.float16),
                             img_min=np.array([ui.get_img_lims()[0]]),
@@ -190,7 +195,7 @@ def upload_worker(worker, upload_workers_status, updates):
 
         else:
             # 🚀 RAM mode
-            api_url, chunk_idx, frames, timestamps, temps, pressures, vms, img_lims = item
+            api_url, chunk_idx, frames, timestamps, temps, raw_temps, pressures, vms, img_lims = item
 
             buffer = io.BytesIO()
             frames_data = np.array(frames, dtype=np.float16)
@@ -199,6 +204,7 @@ def upload_worker(worker, upload_workers_status, updates):
                     frames=frames_data,
                     timestamps=np.array(timestamps, dtype=np.float16),
                     temperatures=np.array(temps, dtype=np.float16),
+                    raw_temperatures=np.array(raw_temps, dtype=np.float16),
                     pressures=np.array(pressures, dtype=np.float16),
                     vms=np.array(vms, dtype=np.float16),
                     img_min=np.array([img_lims[0]]),

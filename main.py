@@ -35,8 +35,8 @@ NUM_UPLOAD_WORKERS = 4
 # ---------------------------
 recording = False
 FRAME_TIME = 1.0 / FPS_WINDOW
-API_URL = 'http://127.0.0.1:8000' if DEV_MODE else "https://stage.randomwebserver.eu"
-# API_URL = "https://stage.randomwebserver.eu"
+API_URL = 'http://127.0.0.1:8000' if DEV_MODE else "https://stage-api.randomwebserver.eu"
+API_URL = "https://stage-api.randomwebserver.eu"
 
 if not ping_api(API_URL):
     raise LookupError('Server not online')

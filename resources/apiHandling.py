@@ -21,7 +21,7 @@ def cleanup_server(api_url):
     else:
         raise Exception("Cleanup failed.")
         
-def backup_to_s3(api_url):
+def backup_to_s3(api_url, filename='output'):
     url = f"{api_url}/backup-data"
     print(f"[COMPILER] Requesting backup to S3/MinIO...")
     
@@ -29,7 +29,7 @@ def backup_to_s3(api_url):
         # stream=True is the key. 
         # timeout here applies to the 'connect' and 'first byte', 
         # but we handle the rest line-by-line.
-        with requests.post(url, headers=headers, timeout=(10, None), stream=True, params={"force_backup":True}) as response:
+        with requests.post(url, headers=headers, timeout=(10, None), stream=True, params={"force_backup":True, "filename": filename}) as response:
             if response.status_code != 200:
                 print(f"[COMPILER] Backup Failed (Status {response.status_code}): {response.text}")
                 return False
@@ -183,34 +183,34 @@ def trigger_server_compilation(api_url, FORCE_BACKUP, DEV_MODE, upload_workers_s
             except Exception as e:
                 print(f"Failed to download {file_name}: {e}")
 
-        choice = input(f"\n[?] Rendering complete. Download mp4 file in background? (y/n): ").lower()
+        # choice = input(f"\n[?] Rendering complete. Download mp4 file in background? (y/n): ").lower()
     
-        if choice == 'y':
-            python_exe = sys.executable
-            script_path = os.path.abspath("resources/downloader.py")
-            print(script_path)
+        # if choice == 'y':
+        #     python_exe = sys.executable
+        #     script_path = os.path.abspath("resources/downloader.py")
+        #     print(script_path)
             
-            cmd = [
-                python_exe, script_path, 
-                api_url, 
-                headers.get("Authorization", ""), 
-                filename
-            ] + ['/download/video.mp4']
+        #     cmd = [
+        #         python_exe, script_path, 
+        #         api_url, 
+        #         headers.get("Authorization", ""), 
+        #         filename
+        #     ] + ['/download/video.mp4']
 
-            try:
-                # CREATE_NEW_CONSOLE = 0x00000010
-                # This is the cleanest way on Windows to launch a new terminal
-                subprocess.Popen(
-                    cmd, 
-                    creationflags=subprocess.CREATE_NEW_CONSOLE
-                )
-                print(f"[COMPILER] Downloader launched. Check the new window.")
-            except Exception as e:
-                print(f"[COMPILER] Failed to launch downloader: {e}")
+        #     try:
+        #         # CREATE_NEW_CONSOLE = 0x00000010
+        #         # This is the cleanest way on Windows to launch a new terminal
+        #         subprocess.Popen(
+        #             cmd, 
+        #             creationflags=subprocess.CREATE_NEW_CONSOLE
+        #         )
+        #         print(f"[COMPILER] Downloader launched. Check the new window.")
+        #     except Exception as e:
+        #         print(f"[COMPILER] Failed to launch downloader: {e}")
             
-            print(f"[COMPILER] Downloader launched in a new window. You can continue working here.")
-        else:
-            print("[COMPILER] Download skipped by user.")
+        #     print(f"[COMPILER] Downloader launched in a new window. You can continue working here.")
+        # else:
+        #     print("[COMPILER] Download skipped by user.")
 
         return True
 
@@ -244,9 +244,11 @@ def ping_api(api_url):
                 print("    - Latest Backup: None found")
                 
             return True            
-    except requests.exceptions.ConnectionError:
+    except requests.exceptions.ConnectionError as e:
+        print(e)
         print("[ERROR] Connection failed: Is the FastAPI server running?")
     except Exception as e:
+        print(e)
         print(f"[ERROR] An unexpected error occurred: {e}")
     
     return False

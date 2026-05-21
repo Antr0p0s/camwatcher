@@ -1,14 +1,10 @@
 import os
-import threading
 import time
 import numpy as np
 import requests
 import io
 import queue
 from dotenv import load_dotenv
-import json
-from concurrent.futures import ThreadPoolExecutor
-
 
 upload_queue = queue.Queue(maxsize=100)
 

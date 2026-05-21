@@ -59,7 +59,7 @@ def save_buffer_worker(frames_buffer, timestamps_buffer, temperatures_buffer, ra
     times_raw = timestamps_buffer.copy()
     temps_raw = temperatures_buffer.copy()
     press_raw = pressures_buffer.copy()
-    raw_temps_raw = raw_temperatures_buffer.copy
+    raw_temps_raw = raw_temperatures_buffer.copy()
     vms_raw = vms_buffer.copy()
     
     np.savez(

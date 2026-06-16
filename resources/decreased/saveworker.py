@@ -29,12 +29,9 @@ def save_buffer_worker(frames_buffer, timestamps_buffer, temperatures_buffer, ra
             raw_temps_raw = raw_temperatures_buffer.copy()
             press_raw = pressures_buffer.copy()
             vms_raw = vms_buffer.copy()
-                        
-            print('----------------')
-            print(len(temperatures_buffer))
-            print(len(full_raw_temps_buffer))
-            print(len(full_timestamps_buffer))
-
+            full_raw_temps = full_raw_temps_buffer.copy()
+            full_timestamps = full_timestamps_buffer.copy()
+                
             frames_buffer.clear()
             timestamps_buffer.clear()
             temperatures_buffer.clear()
@@ -58,6 +55,8 @@ def save_buffer_worker(frames_buffer, timestamps_buffer, temperatures_buffer, ra
                 temperatures=np.array(temps_raw, dtype=np.float16),
                 raw_temperatures=np.array(raw_temps_raw, dtype=np.float16),
                 pressures=np.array(press_raw, dtype=np.float16),
+                full_raw_temps=np.array(full_raw_temps, dtype=np.float16),
+                full_timestamps=np.array(full_timestamps, dtype=np.float16),
                 vms=np.array(vms_raw, dtype=np.float16)
             )
         else:

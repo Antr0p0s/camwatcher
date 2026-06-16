@@ -69,6 +69,8 @@ def save_buffer_worker(frames_buffer, timestamps_buffer, temperatures_buffer, ra
     press_raw = pressures_buffer.copy()
     raw_temps_raw = raw_temperatures_buffer.copy()
     vms_raw = vms_buffer.copy()
+    full_raw_temps = full_raw_temps_buffer.copy()
+    full_timestamps = full_timestamps_buffer.copy()
     
     np.savez(
         filename,
@@ -77,6 +79,8 @@ def save_buffer_worker(frames_buffer, timestamps_buffer, temperatures_buffer, ra
         temperatures=np.array(temps_raw, dtype=np.float16),
         raw_temperatures=np.array(raw_temps_raw, dtype=np.float16),
         pressures=np.array(press_raw, dtype=np.float16),
+        full_raw_temps=np.array(full_raw_temps, dtype=np.float16),
+        full_timestamps=np.array(full_timestamps, dtype=np.float16),
         vms=np.array(vms_raw, dtype=np.float16)
     )
     print("[DISPATCHER] Stopped")

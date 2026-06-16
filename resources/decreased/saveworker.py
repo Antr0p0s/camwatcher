@@ -11,7 +11,8 @@ load_dotenv()
 NO_CAM_SAVE_LOC = os.getenv("NO_CAM_SAVE_LOC")
 
 def save_buffer_worker(frames_buffer, timestamps_buffer, temperatures_buffer, raw_temperatures_buffer,
-                       pressures_buffer, stop_event, updates, chunk_size, chunk_name, vms_buffer):
+                       pressures_buffer, stop_event, updates, chunk_size, chunk_name, vms_buffer,
+                       full_raw_temps_buffer, full_timestamps_buffer):
     chunk_counter = 1
     chunk_dir = f'{NO_CAM_SAVE_LOC}/{chunk_name}' if 'prct' not in chunk_name else f'{NO_CAM_SAVE_LOC}/chunks/{datetime.now().strftime('%m-%d-%H-%M')}'
 
@@ -28,6 +29,11 @@ def save_buffer_worker(frames_buffer, timestamps_buffer, temperatures_buffer, ra
             raw_temps_raw = raw_temperatures_buffer.copy()
             press_raw = pressures_buffer.copy()
             vms_raw = vms_buffer.copy()
+                        
+            print('----------------')
+            print(len(temperatures_buffer))
+            print(len(full_raw_temps_buffer))
+            print(len(full_timestamps_buffer))
 
             frames_buffer.clear()
             timestamps_buffer.clear()
@@ -35,6 +41,9 @@ def save_buffer_worker(frames_buffer, timestamps_buffer, temperatures_buffer, ra
             raw_temperatures_buffer.clear()
             pressures_buffer.clear()
             vms_buffer.clear()
+            full_raw_temps_buffer.clear()
+            full_timestamps_buffer.clear()
+
             
             filename = f"{chunk_dir}/chunk_{chunk_counter}.npz"
             updates['saved']+= len(frames_raw)

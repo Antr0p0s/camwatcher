@@ -25,10 +25,10 @@ USE_FAKE_TEMPS = DEV_MODE
 USE_FAKE_PRESSURE = DEV_MODE
 AUTO_ENABLE_RECORDING = True
 FPS_WINDOW = 20
-CHUNK_SIZE = 100
+CHUNK_SIZE = 10
 
 # dicts for global variables
-temperatures = {"current_temps" : [0,0,0,0], "raw_temps": [0,0,0,0]}
+temperatures = {"current_temps" : [0,0,0,0], "raw_temps": [0,0,0,0], "full_temps": [], "full_timestamps": []}
 pressure = {"current_pressure" : 0, 'current_status': 0}
 updates = {
     "total": 0,
@@ -80,7 +80,7 @@ acq_thread = threading.Thread(
 
 temp_thread = threading.Thread(
     target=temperature_acquisition_thread,
-    args=(USE_FAKE_TEMPS, temperatures, temp_event),
+    args=(USE_FAKE_TEMPS, temperatures, recording_start, temp_event),
     daemon=True
 )
 
@@ -109,11 +109,16 @@ def toggle_recording(event):
         raw_temperatures_buffer.clear()
         pressures_buffer.clear()
         vms_buffer.clear()
+        full_raw_temps_buffer.clear()
+        full_timestamps_buffer.clear()
         
         # 2. CREATE A NEW THREAD OBJECT
         chunk_thread = threading.Thread(
             target=save_buffer_worker,
-            args=(frames_buffer, timestamps_buffer, temperatures_buffer, raw_temperatures_buffer, pressures_buffer, chunk_event, updates, CHUNK_SIZE, ui.get_filename(), vms_buffer),
+            args=(frames_buffer, timestamps_buffer, temperatures_buffer, 
+                  raw_temperatures_buffer, pressures_buffer, chunk_event, 
+                  updates, CHUNK_SIZE, ui.get_filename(), vms_buffer,
+                  full_raw_temps_buffer, full_timestamps_buffer),
             daemon=True
         )
         # 3. Start it
@@ -134,6 +139,8 @@ raw_temperatures_buffer = []
 pressures_buffer = []
 frames_buffer = []
 vms_buffer = []
+full_raw_temps_buffer = []
+full_timestamps_buffer = []
 
 i = 0
 
@@ -159,6 +166,12 @@ try:
                 raw_current_temp_snapshot = list(temperatures['raw_temps']) # copy the list
                 current_pressure_snapshot = pressure["current_pressure"]
                 
+                full_current_temps_snapshot = list(temperatures["full_temps"])
+                full_current_timestamps_snapshot = list(temperatures["full_timestamps"])
+                
+                temperatures['full_temps'].clear()
+                temperatures['full_timestamps'].clear()
+                
                 got_frames.append(frame_data)
                 got_timestamps.append(ts_data)
                 
@@ -170,6 +183,9 @@ try:
                     raw_temperatures_buffer.append(raw_current_temp_snapshot)
                     vms_buffer.append(ui.get_img_lims())
                     pressures_buffer.append(current_pressure_snapshot)
+                    
+                    full_raw_temps_buffer += full_current_temps_snapshot
+                    full_timestamps_buffer += full_current_timestamps_snapshot
                 elif current_pressure_snapshot < 200 and AUTO_ENABLE_RECORDING:
                     toggle_recording(1)
                                 

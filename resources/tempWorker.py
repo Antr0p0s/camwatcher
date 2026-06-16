@@ -17,7 +17,7 @@ FITS = [[0.125509,	-1.891261,	5.205203], # blue
 PROBE_ORDER=[3, 2, 1, 0] 
 # blue = 0 - black = 1 - red = 2 - white = 3
 NUM_PROBES = 4
-MOV_AVG_LENGTH = 4
+MOV_AVG_LENGTH = 1
 
 # gewilde orde: black, white, blue, red (1, 3, 0, 2)
 def convert_temperature(measured_temp, probe_no):
@@ -108,13 +108,15 @@ def get_backend(USE_FAKE_TEMPS):
 # =========================================================
 # MAIN THREAD
 # =========================================================
-def temperature_acquisition_thread(USE_FAKE_TEMPS, temperatures, stop_event):
+def temperature_acquisition_thread(USE_FAKE_TEMPS, temperatures, recording_start, stop_event):
     print("[TEMP] Temperature thread started.")
 
     backend = get_backend(USE_FAKE_TEMPS)
     backend.connect(BOARD_NUM)
 
     history = [deque(maxlen=MOV_AVG_LENGTH) for _ in range(NUM_PROBES)]
+    
+    previous_temps = temperatures['raw_temps']
 
     try:
         while not stop_event.is_set():
@@ -125,6 +127,9 @@ def temperature_acquisition_thread(USE_FAKE_TEMPS, temperatures, stop_event):
                 try:
                     probe_num = PROBE_ORDER[i]
                     raw_temp = backend.read_temp(BOARD_NUM, probe_num)
+                    
+                    if previous_temps[0] == raw_temp and i == 0:
+                        return #performance ish
 
                     history[probe_num].append(raw_temp)
                     avg_temp = sum(history[probe_num]) / len(history[probe_num])
@@ -137,7 +142,9 @@ def temperature_acquisition_thread(USE_FAKE_TEMPS, temperatures, stop_event):
 
             temperatures["current_temps"] = current_temps
             temperatures["raw_temps"] = raw_temps
-            time.sleep(1 / 14)
+            temperatures['full_temps'].append(current_temps)
+            temperatures['full_timestamps'].append(time.time() - recording_start)
+            time.sleep(1 / 40) #40 fps
 
     except Exception as e:
         print(f"[TEMP] Error: {e}")

@@ -142,7 +142,7 @@ def temperature_acquisition_thread(USE_FAKE_TEMPS, temperatures, recording_start
 
             temperatures["current_temps"] = current_temps
             temperatures["raw_temps"] = raw_temps
-            temperatures['full_temps'].append(current_temps)
+            temperatures['full_temps'].append(raw_temps)
             temperatures['full_timestamps'].append(time.time() - recording_start)
             time.sleep(1 / 40) #40 fps
 

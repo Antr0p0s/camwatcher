@@ -16,7 +16,7 @@ import os
 
 load_dotenv()
 
-DEV_MODE = False #os.getenv("ENVIRONMENT") == 'dev'
+DEV_MODE = os.getenv("ENVIRONMENT") == 'dev'
 print(f'Running in {"DEV" if DEV_MODE else 'PROD'}')
 # ---------------------------
 # ConfigurationS
@@ -24,7 +24,7 @@ print(f'Running in {"DEV" if DEV_MODE else 'PROD'}')
 USE_FAKE_TEMPS = DEV_MODE
 USE_FAKE_PRESSURE = DEV_MODE
 USE_FAKE_VOLTS = DEV_MODE
-AUTO_ENABLE_RECORDING = False
+AUTO_ENABLE_RECORDING = True
 FPS_WINDOW = 20
 CHUNK_SIZE = 100
 

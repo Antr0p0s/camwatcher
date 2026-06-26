@@ -4,7 +4,7 @@ import queue
 from resources.setBounds import get_manual_bubble_mask
 from resources.tempWorker import temperature_acquisition_thread
 from resources.pressureWorker import pressure_acquisition_thread
-from resources.no_cam_workers import save_data
+from resources.voltageWorker import voltage_acquisition_thread
 from resources.decreased.camworker import low_acquisition_thread
 from resources.decreased.saveworker import save_buffer_worker
 from resources.cam import PixelFlyCamera
@@ -16,19 +16,21 @@ import os
 
 load_dotenv()
 
-DEV_MODE = os.getenv("ENVIRONMENT") == 'dev'
+DEV_MODE = False #os.getenv("ENVIRONMENT") == 'dev'
 print(f'Running in {"DEV" if DEV_MODE else 'PROD'}')
 # ---------------------------
 # ConfigurationS
 # ---------------------------
 USE_FAKE_TEMPS = DEV_MODE
 USE_FAKE_PRESSURE = DEV_MODE
-AUTO_ENABLE_RECORDING = True
+USE_FAKE_VOLTS = DEV_MODE
+AUTO_ENABLE_RECORDING = False
 FPS_WINDOW = 20
 CHUNK_SIZE = 100
 
 # dicts for global variables
 temperatures = {"current_temps" : [0,0,0,0], "raw_temps": [0,0,0,0], "full_temps": [], "full_timestamps": []}
+voltages = {"current_volt": 0, "full_volts": [], "full_timestamps": []}
 pressure = {"current_pressure" : 0, 'current_status': 0}
 updates = {
     "total": 0,
@@ -40,7 +42,7 @@ FRAME_TIME = 1.0 / FPS_WINDOW
 
 camera = PixelFlyCamera(frame_time=FRAME_TIME, exposure_time=0.1)
 
-recording = True
+recording = False
 
 print("[INIT] Please set bubble bounds...")
 first_frame = None
@@ -51,7 +53,7 @@ while first_frame is None:
     else:
         time.sleep(0.1)
 
-bounds, img_lims  = get_manual_bubble_mask(camera)
+bounds, img_lims = get_manual_bubble_mask(camera)
 
 if len(bounds) == 2:
     exit()
@@ -67,6 +69,7 @@ timestamps_queue = queue.Queue(maxsize=50)
 recording_start = time.time()
 
 acq_event = threading.Event()
+volt_event = threading.Event()
 temp_event = threading.Event()
 pressure_event = threading.Event()
 chunk_event = threading.Event()
@@ -81,6 +84,12 @@ acq_thread = threading.Thread(
 temp_thread = threading.Thread(
     target=temperature_acquisition_thread,
     args=(USE_FAKE_TEMPS, temperatures, recording_start, temp_event),
+    daemon=True
+)
+
+volt_thread = threading.Thread(
+    target=voltage_acquisition_thread,
+    args=(USE_FAKE_VOLTS, voltages, recording_start, volt_event),
     daemon=True
 )
 
@@ -111,6 +120,9 @@ def toggle_recording(event):
         vms_buffer.clear()
         full_raw_temps_buffer.clear()
         full_timestamps_buffer.clear()
+        volts_buffer.clear()
+        full_volts_buffer.clear()
+        full_volt_timestamps_buffer.clear()
         
         # 2. CREATE A NEW THREAD OBJECT
         chunk_thread = threading.Thread(
@@ -118,7 +130,8 @@ def toggle_recording(event):
             args=(frames_buffer, timestamps_buffer, temperatures_buffer, 
                   raw_temperatures_buffer, pressures_buffer, chunk_event, 
                   updates, CHUNK_SIZE, ui.get_filename(), vms_buffer,
-                  full_raw_temps_buffer, full_timestamps_buffer),
+                  full_raw_temps_buffer, full_timestamps_buffer,
+                  full_volts_buffer, full_volt_timestamps_buffer, volts_buffer),
             daemon=True
         )
         # 3. Start it
@@ -132,6 +145,7 @@ ui.btn_toggle.on_clicked(toggle_recording)
 temp_thread.start()
 pressure_thread.start()
 acq_thread.start()
+volt_thread.start()
 
 timestamps_buffer = []
 temperatures_buffer = []
@@ -141,6 +155,9 @@ frames_buffer = []
 vms_buffer = []
 full_raw_temps_buffer = []
 full_timestamps_buffer = []
+volts_buffer = []
+full_volts_buffer = []
+full_volt_timestamps_buffer = []
 
 i = 0
 
@@ -169,8 +186,15 @@ try:
                 full_current_temps_snapshot = list(temperatures["full_temps"])
                 full_current_timestamps_snapshot = list(temperatures["full_timestamps"])
                 
+                
+                full_current_volts = list(voltages['full_volts'])
+                full_current_volts_timestamps = list(voltages['full_timestamps'])
+                current_volt_snapshot = voltages['current_volt']
+                
                 temperatures['full_temps'].clear()
                 temperatures['full_timestamps'].clear()
+                voltages['full_volts'].clear()
+                voltages['full_timestamps'].clear()
                 
                 got_frames.append(frame_data)
                 got_timestamps.append(ts_data)
@@ -183,11 +207,15 @@ try:
                     raw_temperatures_buffer.append(raw_current_temp_snapshot)
                     vms_buffer.append(ui.get_img_lims())
                     pressures_buffer.append(current_pressure_snapshot)
+                    volts_buffer.append(voltages['current_volt'])
                     
                     full_raw_temps_buffer += full_current_temps_snapshot
                     full_timestamps_buffer += full_current_timestamps_snapshot
-                elif current_pressure_snapshot < 200 and AUTO_ENABLE_RECORDING:
+                    full_volts_buffer += full_current_volts
+                    full_volt_timestamps_buffer += full_current_volts_timestamps
+                elif voltages['current_volt'] > 0 and AUTO_ENABLE_RECORDING:
                     toggle_recording(1)
+                    print('starting recording')
                                 
                 got_frame = True
                 got_timestamp = True
@@ -211,7 +239,8 @@ try:
             text1 = f'Time: {frame_timestamp:0.1f} - temps: {t1}, {t2}, {t3}, {t4}'
             text2 = f'Total frames: {updates['total']} (saved: {updates['saved']}) - index: {updates['current_chunk_index']}'
             text3 = f'Pressure: {(pressure["current_pressure"]):0.1f} mbar - status: {pressure['current_status']}'
-            combined_text = f"{text2}\n{text1}\n{text3}"
+            text4 = f'Voltage: {voltages['current_volt']:0.1f}'
+            combined_text = f"{text2}\n{text1}\n{text3}\n{text4}"
             ui.set_sub_title(combined_text)
             ui.fig.canvas.flush_events()  # force immediate redraw
         else:
@@ -228,15 +257,33 @@ try:
             time.sleep(sleep_time)
 
 finally:
+    print("\n[SHUTDOWN] Signaling all worker threads to stop...")
+    # 1. Fire ALL events first so every background thread knows it's time to die
     acq_event.set()
-    
     temp_event.set()
-    temp_thread.join()
-    
+    volt_event.set()
     pressure_event.set()
-    pressure_thread.join()
-    
     chunk_event.set()
-    chunk_thread.join()
+    
+    # Give them a tiny window (50ms) to drop out of their loops concurrently
+    time.sleep(0.05) 
+
+    # 2. Join threads safely using short timeouts to prevent UI freezing
+    print("[SHUTDOWN] Joining Temperature thread...")
+    temp_thread.join(timeout=1.0)
+    
+    print("[SHUTDOWN] Joining Voltage (Arduino) thread...")
+    volt_thread.join(timeout=1.0)
+    if volt_thread.is_alive():
+        print("[WARNING] Voltage thread did not exit cleanly, bypassing to avoid hard lock.")
+    
+    print("[SHUTDOWN] Joining Pressure thread...")
+    pressure_thread.join(timeout=1.0)
+    
+    print("[SHUTDOWN] Joining File Save thread...")
+    if chunk_thread and chunk_thread.is_alive():
+        chunk_thread.join(timeout=2.0)
+        
+    print("[SHUTDOWN] All threads handled. Closing main application.")
 
 
